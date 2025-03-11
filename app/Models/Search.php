@@ -20,7 +20,7 @@ class Search extends Model
      */
     public function files(): HasMany
     {
-        return $this->hasMany(UploadedFile::class);
+        return $this->hasMany(AudioFile::class);
     }
 
     /**
