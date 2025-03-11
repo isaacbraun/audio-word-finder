@@ -63,7 +63,7 @@ new #[Title('New Search')] class extends Component
         // Save submission to storage/DB
         $searchModel = $this->save();
         // Redirect to search results
-        $this->redirectRoute('search', ['id' => $searchModel->id]);
+        $this->redirectRoute('search', ['id' => $searchModel->id], navigate: true);
     }
 }; ?>
 
