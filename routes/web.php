@@ -8,9 +8,9 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Volt::route('/new', 'new')->name('new');
+    Volt::route('new', 'new')->name('new');
 
-    Volt::route('/search/{id}', 'search')->name('search');
+    Volt::route('search/{id}', 'search')->name('search');
 });
 
 Route::middleware(['auth'])->group(function () {
