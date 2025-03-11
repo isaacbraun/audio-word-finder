@@ -2,41 +2,29 @@
 
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
-use Livewire\Attributes\Validate;
-use Livewire\Attributes\Computed;
+use Livewire\Attributes\{Title, Validate};
 
 use App\Models\Search;
 use App\Models\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
-new class extends Component
+new #[Title('New Search')] class extends Component
 {
     use WithFileUploads;
 
-    // TODO: fix validation
-    #[Validate([
-        'uploadedFiles' => [
-            'mimes:m4a,wav,mp3',
-        ],
-        // 'uploadedFiles.*' => [
-        //     'mimetypes:audio/mpeg,audio/mp4',
-        // ],
-    ])]
+    // TODO: fix validation error message.
+    // I think validation is working correctly, but the error message is not
+    // displaying correctly.
+    #[
+        Validate(
+            ['uploadedFiles.*' => 'required|mimetypes:audio/wav,audio/x-wav,audio/mpeg,audio/mp4'],
+            message: 'Please select an audio file.',
+        )
+    ]
     public $uploadedFiles = [];
+
     #[Validate('required')]
     public $query = '';
-    public $showResults = false;
-    public $searchModel = null;
-
-    #[Computed]
-    public function files()
-    {
-        if ($this->searchModel) {
-            return $this->searchModel->files()->get();
-        } else {
-            return collect([]);
-        }
-    }
 
     private function save(): Search
     {
@@ -63,6 +51,9 @@ new class extends Component
             // Add file entries to related search and save
             $searchEntry->files()->saveMany($fileEntries);
 
+            // Load the newly added files
+            $searchEntry->load('files');
+
             return $searchEntry;
         });
     }
@@ -70,9 +61,9 @@ new class extends Component
     public function search()
     {
         // Save submission to storage/DB
-        $this->searchModel = $this->save();
-        $this->showResults = true;
-        // Start job
+        $searchModel = $this->save();
+        // Redirect to search results
+        $this->redirectRoute('search', ['id' => $searchModel->id]);
     }
 }; ?>
 
@@ -89,23 +80,4 @@ new class extends Component
             <flux:button type="submit" variant="primary">Search</flux:button>
         </form>
     </div>
-
-    @if (count($this->files()) > 0)
-    <div class="mt-4">
-        <flux:separator />
-
-        <flux:heading size="lg" level="2">Results for "{{ $query }}"</flux:heading>
-        <flux:subheading>Searching {{ count($files) }} files.</flux:subheading>
-
-        <flux:accordion>
-            @foreach ($this->files() as $file)
-            <flux:accordion.item>
-                <flux:accordion.heading>{{ $file->audio_filename }}</flux:accordion.heading>
-
-                <flux:accordion.content>{{ $file->audio_path }}</flux:accordion.content>
-            </flux:accordion.item>
-            @endforeach
-        </flux:accordion>
-    </div>
-    @endif
 </div>
