@@ -13,7 +13,7 @@ class Search extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['query'];
+    protected $fillable = ['query', 'user_id'];
 
     /**
      * Get the uploaded files for the search

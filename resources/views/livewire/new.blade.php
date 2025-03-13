@@ -6,6 +6,7 @@ use Livewire\Attributes\{Computed, Title, Validate};
 
 use App\Models\Search;
 use App\Models\AudioFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 new #[Title('New Search')] class extends Component
@@ -68,6 +69,7 @@ new #[Title('New Search')] class extends Component
         $searchModel = DB::transaction(function () {
             // Create Search DB entry
             $searchEntry = Search::create([
+                'user_id' => Auth::id(),
                 'query' => $this->query,
             ]);
 
@@ -118,7 +120,7 @@ new #[Title('New Search')] class extends Component
                         @if ($this->isUploading)
                         <flux:icon.loading variant="micro" />
                         @else
-                        <flux:icon.check variant="mini" class="text-green-500" />
+                        <flux:icon.check variant="mini" class="text-accent" />
                         @endif
                     </div>
 
@@ -143,7 +145,7 @@ new #[Title('New Search')] class extends Component
                                 @if (!$file['uploaded'])
                                 <flux:icon.loading variant="micro" />
                                 @else
-                                <flux:icon.check variant="mini" class="[--callout-icon:var(--color-green-500)]" />
+                                <flux:icon.check variant="mini" class="[--callout-icon:var(--color-accent)]" />
                                 @endif
 
                                 <flux:button wire:click="removeFile({{ $file_id }})"
