@@ -16,6 +16,7 @@ return new class extends Migration
             $table->timestamps();
             $table->string('query');
             $table->integer('query_total')->nullable();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
         });
 
         Schema::create('files', function (Blueprint $table) {
