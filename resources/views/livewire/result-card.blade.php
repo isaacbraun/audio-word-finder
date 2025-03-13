@@ -1,33 +1,54 @@
 <?php
 
+use App\Jobs\ProcessFile;
 use App\Models\AudioFile;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\Computed;
 use Livewire\Volt\Component;
 
 new class extends Component {
     public AudioFile $file;
+
+    #[Computed()]
+    public function transcription(): array
+    {
+        if ($this->file->transcription_path) {
+            $file = Storage::json($this->file->transcription_path);
+        }
+
+        return $file ?? [];
+    }
+
+    public function retry()
+    {
+        ProcessFile::dispatch($this->file);
+    }
 }; ?>
 
 <div>
-    <flux:card>
-        <flux:heading size="lg">
+    <flux:card wire:poll.2s>
+        <flux:heading>
             <span class="mr-1 mt-1">{{ $file->audio_filename }}</span>
 
-            @if (!$file->transcription_path && !$file->query_count)
-            <flux:badge color="zinc" inset="top bottom">Transcribing</flux:badge>
-            @elseif ($file->transcription_path)
-            <flux:badge color="Sky" inset="top bottom">Searching</flux:badge>
-            @else
-            <flux:badge color="emerald" inset="top bottom">Completed</flux:badge>
+            @if ($this->transcription)
+            <flux:badge size="sm" inset="top bottom" color="{{ $this->transcription['matchCount'] === 0 ? 'rose' : 'emerald' }}">
+                {{ $this->transcription["matchCount"] }} Matches
+            </flux:badge>
             @endif
         </flux:heading>
 
         <div class="mt-4">
-            @if ($file->transcription_path && file->query_count)
-            <flux:accordion>
-                <flux:accordion.item heading="View Transcription Results">
-
-                    <flux:accordion.content>
-
+            @if ($this->transcription)
+            <flux:accordion class="mt-4" variant="reverse">
+                <flux:accordion.item heading="View Transcription">
+                    <flux:accordion.content class="leading-loose">
+                        @foreach ($this->transcription["segments"] as $segment)
+                        @if ($segment["match"])
+                        <flux:badge color="yellow" size="sm" inset="top bottom">{{ $segment["text"] }}</flux:badge>
+                        @else
+                        <span wire:key="$loop->index">{{ $segment["text"] }}</span>
+                        @endif
+                        @endforeach
                     </flux:accordion.content>
                 </flux:accordion.item>
             </flux:accordion>
