@@ -15,21 +15,12 @@
                 <flux:navbar.item icon="plus" :href="route('new')" :current="request()->routeIs('new')" wire:navigate>
                     {{ __('New Search') }}
                 </flux:navbar.item>
+                <flux:navbar.item icon="clock" :href="route('history')" :current="request()->routeIs('history')" wire:navigate>
+                    {{ __('History') }}
+                </flux:navbar.item>
             </flux:navbar>
 
-            <!-- <flux:navbar class="-mb-px max-lg:hidden"> -->
-            <!--     <flux:navbar.item icon="plus" :href="route('new')" :current="request()->routeIs('new')" wire:navigate> -->
-            <!--         {{ __('New Search') }} -->
-            <!--     </flux:navbar.item> -->
-            <!-- </flux:navbar> -->
-
             <flux:spacer />
-
-            <!-- <flux:navbar class="mr-1.5 space-x-0.5 py-0!"> -->
-            <!--     <flux:tooltip :content="__('Search')" position="bottom"> -->
-            <!--         <flux:navbar.item class="!h-10 [&>div>svg]:size-5" icon="magnifying-glass" href="#" :label="__('Search')" /> -->
-            <!--     </flux:tooltip> -->
-            <!-- </flux:navbar> -->
 
             <!-- Desktop User Menu -->
             <flux:dropdown position="top" align="end">
@@ -89,6 +80,9 @@
                     <flux:navlist.item icon="plus" :href="route('new')" :current="request()->routeIs('dashboard')" wire:navigate>
                     {{ __('New Search') }}
                     </flux:navlist.item>
+                <flux:navbar.item icon="clock" :href="route('history')" :current="request()->routeIs('history')" wire:navigate>
+                    {{ __('History') }}
+                </flux:navbar.item>
                 </flux:navlist.group>
             </flux:navlist>
         </flux:sidebar>
