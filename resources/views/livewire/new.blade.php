@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\ProcessFile;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 use Livewire\Attributes\{Computed, Title, Validate};
@@ -79,15 +80,19 @@ new #[Title('New Search')] class extends Component
                 $path = $file->store(path: 'audioFiles');
 
                 // Create new AudioFile DB entry
-                $fileEntries[] = new AudioFile([
+                $fileEntry = new AudioFile([
                     'audio_path' => $path,
                     'audio_filename' => $file->getClientOriginalName(),
                 ]);
 
+                // Add entry to array
+                $fileEntries[] = $fileEntry;
+
                 // Add file entries to related search and save
                 $searchEntry->files()->saveMany($fileEntries);
-                // Load the newly added files
-                $searchEntry->load('files');
+
+                // Dispatch TranscribeFile Jobs
+                ProcessFile::dispatch($searchEntry, $fileEntry);
             }
 
             return $searchEntry;
