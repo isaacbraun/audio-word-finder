@@ -24,7 +24,8 @@ new class extends Component {
 
     public function retry()
     {
-        // Reset transcription path to show correct UI state
+        // Reset transcription path and failed var to show correct UI state
+        $this->failed = false;
         $this->file->transcription_path = null;
         $this->file->save();
 
