@@ -24,6 +24,7 @@ new #[Title('New Search')] class extends Component
             'uploadQueue.*' => [
                 'required',
                 'mimetypes:audio/wav,audio/x-wav,audio/mpeg,audio/mp4,application/octet-stream',
+                'max:25600',
             ],
         ],
         attribute: [
