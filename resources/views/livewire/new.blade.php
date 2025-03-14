@@ -91,7 +91,7 @@ new #[Title('New Search')] class extends Component
                 // Add file entries to related search and save
                 $searchEntry->files()->saveMany($fileEntries);
 
-                // Dispatch TranscribeFile Jobs
+                // Dispatch ProcessFile Job
                 ProcessFile::dispatch($searchEntry, $fileEntry);
             }
 
