@@ -14,8 +14,12 @@ return [
     |
     */
 
-    'postmark' => [
-        'token' => env('POSTMARK_TOKEN'),
+    'resend' => [
+        'key' => env('RESEND_KEY'),
+    ],
+
+    'openai' => [
+        'key' => env('OPENAI_KEY'),
     ],
 
     'ses' => [
@@ -24,8 +28,8 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
-    'resend' => [
-        'key' => env('RESEND_KEY'),
+    'postmark' => [
+        'token' => env('POSTMARK_TOKEN'),
     ],
 
     'slack' => [
