@@ -7,9 +7,9 @@ use App\Models\Search;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class ProcessFile implements ShouldQueue
 {
@@ -28,13 +28,6 @@ class ProcessFile implements ShouldQueue
      */
     public function handle(): void
     {
-        // Get full path to file
-        // $audioPath = Storage::path($this->file->audio_path);
-        //
-        // // Run whisper command through process
-        // $transcriptionProcess = Process::path(__DIR__)->run(['python3', '../../scripts/transcribe.py', $audioPath, $this->search->query])->throw();
-        // $result = $transcriptionProcess->output();
-
         // If audio file doesn't exist
         if (!$this->file->audio_path && !Storage::exists($this->file->audio_path)) {
             throw new \Exception('Audio file does not exist');
@@ -46,14 +39,7 @@ class ProcessFile implements ShouldQueue
         // Search for query and format
         $matches_json = $this->findAndSegment($transcription_response, $this->search->query);
 
-        // Store transcription response to file
-        $transcription_path = 'transcriptions/' . Str::uuid()->toString() . '.json';
-        Storage::put($transcription_path, $matches_json);
-
-        // Decode the JSON and store the result
-        // $matches_json = json_decode($result, true);
-
-        // Check if the JSON was decoded successfully
+        // Check if the query response is valid
         if ($matches_json === null && json_last_error() !== JSON_ERROR_NONE) {
             throw new \Exception('Invalid JSON returned: ' . json_last_error_msg());
         }
@@ -62,6 +48,10 @@ class ProcessFile implements ShouldQueue
         if (!isset($matches_json['matchCount'])) {
             throw new \Exception('matchCount not found in JSON response');
         }
+
+        // Store transcription response to file
+        $transcription_path = 'transcriptions/' . Str::uuid()->toString() . '.json';
+        Storage::put($transcription_path, json_encode($matches_json));
 
         // Write query count to DB file entry
         $this->file->query_count = $matches_json['matchCount'];
@@ -73,9 +63,30 @@ class ProcessFile implements ShouldQueue
         } else {
             $this->search->query_total = intval($matches_json['matchCount']);
         }
+
         // Save DB changes
         $this->search->save();
         $this->file->save();
+    }
+
+    /**
+     * The job failed to process.
+     *
+     * @param \Exception $exception
+     *
+     * @return void
+     */
+    public function failed(\Throwable $exception)
+    {
+        // Send user notification of failure, etc...
+        $this->file->transcription_path = 'failed';
+        $this->file->save();
+
+        if (app()->bound('sentry')) {
+            app('sentry')->captureException($exception);
+        } else {
+            Log::warning('Sentry not bound');
+        }
     }
 
     /**
@@ -86,18 +97,25 @@ class ProcessFile implements ShouldQueue
      */
     protected function transcribeWithWhisper(string $audio_path): string
     {
-        $file = Storage::get($audio_path);
+        $filePath = Storage::path($audio_path);
+
+        // Create a file resource from the path
+        $fileResource = fopen($filePath, 'r');
 
         $response = Http::withToken(env('OPENAI_API_KEY'))
             ->attach(
                 'file',
-                $file,
+                $fileResource,
+                basename($audio_path)
             )
             ->post('https://api.openai.com/v1/audio/transcriptions', [
                 'model' => 'whisper-1',
                 'language' => 'en', // Optional: might speed things up
                 'response_format' => 'json'
             ]);
+
+        // Close the file resource
+        fclose($fileResource);
 
         if (!$response->successful()) {
             throw new \Exception('Whisper API error: ' . $response->body());
