@@ -97,32 +97,43 @@ class ProcessFile implements ShouldQueue
      */
     protected function transcribeWithWhisper(string $audio_path): string
     {
-        $filePath = Storage::path($audio_path);
+        // Get a stream resource for the file
+        $stream = Storage::readStream($audio_path);
 
-        // Create a file resource from the path
-        $fileResource = fopen($filePath, 'r');
+        // Get the original filename or create one
+        $filename = basename($audio_path);
 
-        $response = Http::withToken(env('OPENAI_API_KEY'))
-            ->attach(
-                'file',
-                $fileResource,
-                basename($audio_path)
-            )
-            ->post('https://api.openai.com/v1/audio/transcriptions', [
-                'model' => 'whisper-1',
-                'language' => 'en', // Optional: might speed things up
-                'response_format' => 'json'
-            ]);
+        try {
+            $response = Http::withToken(env('OPENAI_API_KEY'))
+                ->attach(
+                    'file',
+                    $stream,
+                    $filename
+                )
+                ->post('https://api.openai.com/v1/audio/transcriptions', [
+                    'model' => 'whisper-1',
+                    'language' => 'en',
+                    'response_format' => 'json'
+                ]);
 
-        // Close the file resource
-        fclose($fileResource);
+            // Close the stream
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
 
-        if (!$response->successful()) {
-            throw new \Exception('Whisper API error: ' . $response->body());
+            if (!$response->successful()) {
+                throw new \Exception('Whisper API error: ' . $response->body());
+            }
+
+            $result = $response->json();
+            return $result['text'] ?? '';
+        } catch (\Exception $e) {
+            // Make sure we clean up even if there's an error
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+            throw $e;
         }
-
-        $result = $response->json();
-        return $result['text'] ?? '';
     }
 
     /**
