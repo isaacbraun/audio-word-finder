@@ -8,11 +8,14 @@ use Livewire\Volt\Component;
 
 new class extends Component {
     public AudioFile $file;
+    public $failed = false;
 
     #[Computed()]
     public function transcription(): array
     {
-        if ($this->file->transcription_path) {
+        if ($this->file->transcription_path === 'failed') {
+            $this->failed = true;
+        } elseif ($this->file->transcription_path) {
             $file = Storage::json($this->file->transcription_path);
         }
 
@@ -21,7 +24,11 @@ new class extends Component {
 
     public function retry()
     {
-        ProcessFile::dispatch($this->file);
+        // Reset transcription path to show correct UI state
+        $this->file->transcription_path = null;
+        $this->file->save();
+
+        ProcessFile::dispatch($this->file->search, $this->file);
     }
 }; ?>
 
@@ -36,6 +43,7 @@ new class extends Component {
             </flux:badge>
             @endif
         </flux:heading>
+
 
         <div class="mt-4">
             @if ($this->transcription)
@@ -52,6 +60,14 @@ new class extends Component {
                     </flux:accordion.content>
                 </flux:accordion.item>
             </flux:accordion>
+            @elseif ($this->failed)
+            <flux:callout icon="exclamation-triangle" color="red" inline>
+                <flux:callout.heading>Processing failed</flux:callout.heading>
+
+                <x-slot name="actions">
+                    <flux:button wire:click="retry">Retry</flux:button>
+                </x-slot>
+            </flux:callout>
             @else
             <flux:icon.loading variant="micro" />
             @endif
