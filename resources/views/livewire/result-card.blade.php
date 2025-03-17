@@ -45,6 +45,10 @@ new class extends Component {
             @endif
         </flux:heading>
 
+        @if ($file->parsed_date)
+        <flux:subheading>{{ $file->parsed_date->toDayDateTimeString() }}</flux:subheading>
+        @endif
+
 
         <div class="mt-4">
             @if ($this->transcription)
