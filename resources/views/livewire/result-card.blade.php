@@ -32,6 +32,15 @@ new class extends Component {
 
         ProcessFile::dispatch($this->file->search, $this->file);
     }
+
+    public function placeholder()
+    {
+        return <<<'BLADE'
+        <div>
+            <flux:card class="h-32 bg-zinc-100/50" />
+        </div>
+        BLADE;
+    }
 }; ?>
 
 <div @if (!$this->transcription) wire:poll.2s @endif>
@@ -39,9 +48,9 @@ new class extends Component {
         <flux:heading>
             <span class="mr-1 mt-1">{{ $file->audio_filename }}</span>
 
-            @if ($this->transcription)
-            <flux:badge size="sm" inset="top bottom" color="{{ $this->transcription['matchCount'] === 0 ? 'rose' : 'emerald' }}">
-                {{ $this->transcription["matchCount"] }} Matches
+            @if ($this->file->query_count !== null)
+            <flux:badge size="sm" inset="top bottom" color="{{ $this->file->query_count === 0 ? 'rose' : 'emerald' }}">
+                {{ $this->file->query_count }} Matches
             </flux:badge>
             @endif
         </flux:heading>
