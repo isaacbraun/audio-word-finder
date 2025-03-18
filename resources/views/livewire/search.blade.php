@@ -29,8 +29,8 @@ new #[Title('Search Results')] class extends Component {
     <flux:separator class="my-4" />
 
     <flux:heading size="lg" level="2">Summary</flux:heading>
-    <div wire:poll.5s>
-        @if ($search->query_total)
+    <div @if ($search->query_total === null) wire:poll.2s @endif>
+        @if ($search->query_total !== null)
         <flux:heading>{{ $search->query_total }} Matches Found</flux:heading>
         @else
         <flux:icon.loading />

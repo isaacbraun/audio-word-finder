@@ -29,12 +29,13 @@ new class extends Component {
         $this->file->transcription_path = null;
         $this->file->save();
 
+
         ProcessFile::dispatch($this->file->search, $this->file);
     }
 }; ?>
 
-<div>
-    <flux:card wire:poll.2s>
+<div @if (!$this->transcription) wire:poll.2s @endif>
+    <flux:card>
         <flux:heading>
             <span class="mr-1 mt-1">{{ $file->audio_filename }}</span>
 
