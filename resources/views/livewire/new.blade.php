@@ -1,8 +1,9 @@
 <?php
 
-use App\Jobs\ProcessFile;
 use App\Models\Search;
 use App\Models\AudioFile;
+use App\Jobs\ProcessFile;
+use App\Enums\SearchStatus;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 use Livewire\Attributes\{Computed, Title, Validate};
@@ -93,7 +94,6 @@ new #[Title('New Search')] class extends Component
             }
 
             return $dateTime;
-
         } catch (\Exception $e) {
             // Handle date parsing errors
             Log::info('New Search: filename date parsing issue', ['exception' => $e->getMessage()]);
@@ -110,6 +110,7 @@ new #[Title('New Search')] class extends Component
             $searchEntry = Search::create([
                 'user_id' => Auth::id(),
                 'query' => $this->query,
+                'status' => SearchStatus::Processing,
             ]);
 
             $fileEntries = [];
@@ -139,6 +140,7 @@ new #[Title('New Search')] class extends Component
 
                 // Add file entries to related search and save
                 $searchEntry->files()->saveMany($fileEntries);
+
 
                 // Dispatch ProcessFile Job
                 ProcessFile::dispatch($searchEntry, $fileEntry);
