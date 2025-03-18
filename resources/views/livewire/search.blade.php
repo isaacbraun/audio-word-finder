@@ -1,14 +1,21 @@
 <?php
 
-use Livewire\Volt\Component;
 use App\Models\Search;
-use Livewire\Attributes\{Title};
+use App\Enums\SearchStatus;
+use Livewire\Volt\Component;
+use Livewire\Attributes\{Title, Computed};
+use Illuminate\Support\Facades\Log;
 
 new #[Title('Search Results')] class extends Component {
-    public $id;
-    public $search;
-    public $query;
+    use \Livewire\WithPagination;
+
+    public int $id;
+    public Search $search;
+    public string $query;
+    /** @var \App\Models\AudioFile[] */
     public $files;
+    public string $summarySortBy = 'parsed_date';
+    public string $summarySortDirection = 'desc';
 
     public function mount($id)
     {
@@ -20,29 +27,113 @@ new #[Title('Search Results')] class extends Component {
         $this->query = $this->search->query;
         $this->files = $this->search->files;
     }
+
+    public function delete()
+    {
+        try {
+            Log::info('Search: deleting search {search}', ['search' => $this->search->id]);
+            $this->search->delete();
+            $this->redirectRoute('history', navigate: true);
+        } catch (\Exception $e) {
+            Log::error('Search: error deleting search {search}: {exception}', ['search' => $this->search, 'exception' => $e]);
+        }
+    }
+
+    public function sort($column)
+    {
+        if ($this->summarySortBy === $column) {
+            $this->summarySortDirection = $this->summarySortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->summarySortBy = $column;
+            $this->summarySortDirection = 'asc';
+        }
+    }
+
+    #[Computed]
+    public function summaryFiles()
+    {
+        return $this->search->files()->where('query_count', '>', 0)
+            ->tap(fn($query) => $this->summarySortBy ? $query->orderBy($this->summarySortBy, $this->summarySortDirection) : $query)
+            ->paginate(10);
+    }
 }; ?>
 
 <div>
-    <flux:heading size="xl" level="1">Results for "{{ $query }}"</flux:heading>
-    <flux:subheading>Searching {{ count($files) }} files.</flux:subheading>
+    <div class="flex flex-row flex-wrap items-center justify-between gap-2">
+        <flux:heading size="xl" level="1">Results</flux:heading>
+        <flux:modal.trigger name="delete-search">
+            <flux:button size="sm" variant="danger" icon="trash">Delete</flux:button>
+        </flux:modal.trigger>
+    </div>
+    <flux:subheading class="mt-2">Searching {{ count($files) }} files for "{{ $query }}"</flux:subheading>
 
-    <flux:separator class="my-4" />
 
-    <flux:heading size="lg" level="2">Summary</flux:heading>
-    <div @if ($search->query_total === null) wire:poll.2s @endif>
-        @if ($search->query_total !== null)
-        <flux:heading>{{ $search->query_total }} Matches Found</flux:heading>
+    <flux:modal name="delete-search" class="min-w-[22rem]">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">Delete search?</flux:heading>
+
+                <flux:subheading>
+                    <p>You're about to delete this search.</p>
+                    <p>This action cannot be reversed.</p>
+                </flux:subheading>
+            </div>
+
+            <div class="flex gap-2">
+                <flux:spacer />
+
+                <flux:modal.close>
+                    <flux:button variant="ghost">Cancel</flux:button>
+                </flux:modal.close>
+
+                <flux:button wire:click="delete" type="submit" variant="danger">Delete search</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    <div class="flex flex-row flex-wrap items-center justify-between gap-2">
+        <flux:heading size="lg" level="2" class="mt-8">Summary</flux:heading>
+        <!-- <flux:button @click="window.print()" size="xs" variant="ghost" icon="printer">Print</flux:button> -->
+    </div>
+    <div @if ($search->status !== SearchStatus::Completed) wire:poll.2s @endif>
+        @if ($search->status === SearchStatus::Completed && $search->query_total > 0)
+        <flux:table :paginate="$this->summaryFiles">
+            <flux:table.columns>
+                <flux:table.column sortable :sorted="$summarySortBy === 'parsed_date'" :direction="$summarySortDirection" wire:click="sort('parsed_date')">File</flux:table.column>
+                <flux:table.column sortable :sorted="$summarySortBy === 'query_count'" :direction="$summarySortDirection" wire:click="sort('query_count')">Matches</flux:table.column>
+            </flux:table.columns>
+
+            <flux:table.rows>
+                @foreach ($this->summaryFiles as $file)
+                <flux:table.row :key="$file->id">
+                    @if ($file->parsed_date)
+                    <flux:table.cell>{{ $file->parsed_date->toDayDateTimeString() }}</flux:table.cell>
+                    @else
+                    <flux:table.cell>{{ $file->audio_filename }}</flux:table.cell>
+                    @endif
+
+                    <flux:table.cell>{{ $file->query_count }}</flux:table.cell>
+                </flux:table.row>
+                @endforeach
+
+                <flux:table.row class="border-t-2 border-t-accent font-extrabold">
+                    <flux:table.cell>Total</flux:table.cell>
+                    <flux:table.cell>{{ $search->query_total }}</flux:table.cell>
+                </flux:table.row>
+            </flux:table.rows>
+        </flux:table>
+        @elseif ($search->status === SearchStatus::Processing)
+        <flux:icon.loading variant="micro" class="mt-4" />
         @else
-        <flux:icon.loading />
+        <flux:subheading>No matches found</flux:subheading>
         @endif
     </div>
 
-    <flux:separator class="my-4" />
 
-    <flux:heading size="lg" level="2">Files</flux:heading>
+    <flux:heading size="lg" level="2" class="mt-8">Files</flux:heading>
     <div class="mt-4 flex flex-col gap-4">
         @foreach ($files as $file)
-        <livewire:result-card :file="$file" wire:key="{{ $file->id }}" />
+        <livewire:result-card :lazy="$loop->index > 10 ? 'on-load' : ''" :file="$file" wire:key="{{ $file->id }}" />
         @endforeach
     </div>
 </div>
