@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Enums\SearchStatus;
 
 class Search extends Model
 {
@@ -13,7 +14,11 @@ class Search extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['query', 'user_id'];
+    protected $fillable = ['query', 'user_id', 'status'];
+
+    protected $casts = [
+        'status' => SearchStatus::class,
+    ];
 
     /**
      * Get the uploaded files for the search
