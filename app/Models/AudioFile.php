@@ -19,7 +19,7 @@ class AudioFile extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['audio_path', 'audio_filename', 'parsed_date'];
+    protected $fillable = ['audio_path', 'audio_filename', 'query_count', 'parsed_date'];
 
     /**
      * Get the attributes that should be cast.
