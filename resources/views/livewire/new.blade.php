@@ -138,7 +138,7 @@ new #[Title('New Search')] class extends Component
                     'parsed_date' => $parsedDate,
                 ]);
 
-                Log::debug('New View: search "{query}" - adding file {name}', ['query' => $this->query, 'name' => $fileEntry->audio_filename]);
+                Log::info('New View: search "{query}" - adding file {name}', ['query' => $this->query, 'name' => $fileEntry->audio_filename]);
 
                 // Add entry to array
                 $fileEntries[] = $fileEntry;

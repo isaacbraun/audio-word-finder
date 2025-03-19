@@ -28,7 +28,7 @@ new #[Title('Search Results')] class extends Component {
         $this->files = $this->search->files;
 
         foreach ($this->files as $file) {
-            Log::debug('Search View: search "{query}" - adding file {name}', ['query' => $this->query, 'name' => $file->audio_filename]);
+            Log::info('Search View: search "{query}" - adding file {name}', ['query' => $this->query, 'name' => $file->audio_filename]);
         }
     }
 
