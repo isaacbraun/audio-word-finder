@@ -7,15 +7,15 @@
         <flux:header container class="sticky top-0 border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
-            <a href="{{ route('home') }}" class="hidden md:flex ml-2 mr-5 items-center space-x-2 lg:ml-0" wire:navigate>
+            <a href="{{ route('home') }}" class="hidden md:flex ml-2 mr-5 items-center space-x-2 lg:ml-0" wire:navigate.hover>
                 <x-app-logo />
             </a>
 
             <flux:navbar class="-mb-px max-lg:hidden">
-                <flux:navbar.item icon="plus" :href="route('new')" :current="request()->routeIs('new')" wire:navigate>
+                <flux:navbar.item icon="plus" :href="route('new')" :current="request()->routeIs('new')" wire:navigate.hover>
                     {{ __('New Search') }}
                 </flux:navbar.item>
-                <flux:navbar.item icon="clock" :href="route('history')" :current="request()->routeIs('history')" wire:navigate>
+                <flux:navbar.item icon="clock" :href="route('history')" :current="request()->routeIs('history')" wire:navigate.hover>
                     {{ __('History') }}
                 </flux:navbar.item>
             </flux:navbar>
