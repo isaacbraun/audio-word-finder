@@ -113,7 +113,9 @@ class ProcessFile implements ShouldQueue
             $this->search->save();
 
             // Send user email of completion
-            Mail::to($this->search->user)->send(new SearchFinished($this->search));
+            if ($this->search->completion_email) {
+                Mail::to($this->search->user)->send(new SearchFinished($this->search));
+            }
         }
     }
 
