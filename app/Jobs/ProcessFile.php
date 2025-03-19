@@ -4,12 +4,15 @@ namespace App\Jobs;
 
 use App\Models\AudioFile;
 use App\Models\Search;
+use App\Enums\SearchStatus;
+use App\Mail\SearchFinished;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class ProcessFile implements ShouldQueue
 {
@@ -53,11 +56,11 @@ class ProcessFile implements ShouldQueue
         $transcription_path = 'transcriptions/' . Str::uuid()->toString() . '.json';
         Storage::put($transcription_path, json_encode($matches_json));
 
-        // Write query count to DB file entry
+        // Update File Model
         $this->file->query_count = $matches_json['matchCount'];
-        // Write transcription path to DB file entry
         $this->file->transcription_path = $transcription_path;
-        // Update query count in DB search entry
+
+        // Update Search Model Query Total
         if ($this->search->query_total) {
             $this->search->query_total += intval($matches_json['matchCount']);
         } else {
@@ -67,6 +70,10 @@ class ProcessFile implements ShouldQueue
         // Save DB changes
         $this->search->save();
         $this->file->save();
+
+        $this->search->fresh();
+        // Check search status
+        $this->whenFinished();
     }
 
     /**
@@ -78,14 +85,35 @@ class ProcessFile implements ShouldQueue
      */
     public function failed(\Throwable $exception)
     {
-        // Send user notification of failure, etc...
+        // Set transcription_path to 'failed' as pseudo status
         $this->file->transcription_path = 'failed';
         $this->file->save();
+
+        // Check Search status
+        $this->whenFinished();
+        $this->search->save();
 
         if (app()->bound('sentry')) {
             app('sentry')->captureException($exception);
         } else {
             Log::warning('Sentry not bound');
+        }
+    }
+
+    /**
+     * Check if all the files have bee processed.
+     * If so, update Search status and email user
+     */
+    protected function whenFinished(): void
+    {
+        // Check if all files have been processed
+        $processedFilesCount = $this->search->files()->where('transcription_path', '!=', null)->count();
+        if ($processedFilesCount === $this->search->files()->count()) {
+            $this->search->status = SearchStatus::Completed;
+            $this->search->save();
+
+            // Send user email of completion
+            Mail::to($this->search->user)->send(new SearchFinished($this->search));
         }
     }
 

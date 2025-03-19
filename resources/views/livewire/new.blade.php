@@ -1,14 +1,16 @@
 <?php
 
+use App\Models\Search;
+use App\Models\AudioFile;
 use App\Jobs\ProcessFile;
+use App\Enums\SearchStatus;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 use Livewire\Attributes\{Computed, Title, Validate};
-
-use App\Models\Search;
-use App\Models\AudioFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 new #[Title('New Search')] class extends Component
 {
@@ -64,6 +66,41 @@ new #[Title('New Search')] class extends Component
         unset($this->uploadQueue[$index]);
     }
 
+    private function parseDate(string $filename): Carbon | null
+    {
+        // Strict regex that only matches the WSMC skimmer format
+        $pattern = "/(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})/";
+
+        if (!preg_match($pattern, $filename, $matches)) {
+            // Return null
+            return null;
+        }
+
+        try {
+            $dateString = $matches[1]; // 2025-02-17
+            $timeString = str_replace('-', ':', $matches[2]); // Convert 14-25-13 to 14:25:13
+
+            // Create Carbon instance with validation
+            $dateTime = Carbon::createFromFormat('Y-m-d H:i:s', "$dateString $timeString");
+
+            // Additional validation - ensure the date is reasonable
+            $now = Carbon::now();
+            $minDate = $now->copy()->subYears(5);
+            $maxDate = $now->copy()->addYears(1);
+
+            if ($dateTime->lt($minDate) || $dateTime->gt($maxDate)) {
+                // Date is suspiciously old or in the future
+                throw new \Exception('Filename date out of reasonable range: ' . $dateTime->toDateTimeString());
+            }
+
+            return $dateTime;
+        } catch (\Exception $e) {
+            // Handle date parsing errors
+            Log::info('New Search: filename date parsing issue', ['exception' => $e->getMessage()]);
+            return null;
+        }
+    }
+
     public function submitFiles()
     {
         $this->validate();
@@ -73,6 +110,7 @@ new #[Title('New Search')] class extends Component
             $searchEntry = Search::create([
                 'user_id' => Auth::id(),
                 'query' => $this->query,
+                'status' => SearchStatus::Processing,
             ]);
 
             $fileEntries = [];
@@ -80,10 +118,21 @@ new #[Title('New Search')] class extends Component
                 // Store file
                 $path = $file->store(path: 'audioFiles');
 
-                // Create new AudioFile DB entry
+                // Get client file name
+                $clientName = basename($file->getClientOriginalName());
+
+                // Attempt parsing of date from client file name
+                $parsedDate = $this->parseDate($clientName);
+
+                // Sanatize client file name
+                $clientName = preg_replace('/[^\w\-\.\s]/', '', $clientName);
+                $clientName = substr($clientName, 0, 255);
+
+                // Create new AudioFile DB entry - $parseDate may be intentionally null.
                 $fileEntry = new AudioFile([
                     'audio_path' => $path,
-                    'audio_filename' => $file->getClientOriginalName(),
+                    'audio_filename' => $clientName,
+                    'parsed_date' => $parsedDate,
                 ]);
 
                 // Add entry to array
@@ -91,6 +140,7 @@ new #[Title('New Search')] class extends Component
 
                 // Add file entries to related search and save
                 $searchEntry->files()->saveMany($fileEntries);
+
 
                 // Dispatch ProcessFile Job
                 ProcessFile::dispatch($searchEntry, $fileEntry);
