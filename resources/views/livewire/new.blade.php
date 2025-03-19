@@ -38,6 +38,8 @@ new #[Title('New Search')] class extends Component
         ],
     )]
     public $uploadQueue = [];
+    #[Validate('required')]
+    public $completionEmail = true;
 
     // Check if any item in $fileList has not been uploaded
     #[Computed]
@@ -111,6 +113,7 @@ new #[Title('New Search')] class extends Component
                 'user_id' => Auth::id(),
                 'query' => $this->query,
                 'status' => SearchStatus::Processing,
+                'completion_email' => $this->completionEmail,
             ]);
 
             $fileEntries = [];
@@ -134,6 +137,8 @@ new #[Title('New Search')] class extends Component
                     'audio_filename' => $clientName,
                     'parsed_date' => $parsedDate,
                 ]);
+
+                Log::debug('New View: search "{query}" - adding file {name}', ['query' => $this->query, 'name' => $fileEntry->audio_filename]);
 
                 // Add entry to array
                 $fileEntries[] = $fileEntry;
@@ -162,6 +167,8 @@ new #[Title('New Search')] class extends Component
 
         <form wire:submit.prevent="submitFiles" class="*:mb-4">
             <flux:input type="text" wire:model="query" label="Word or Phrase" />
+
+            <flux:switch wire:model.live="completionEmail" label="Completion email" description="Receive an email when the search is complete." />
 
             <flux:fieldset>
                 <flux:legend>Audio Files</flux:legend>

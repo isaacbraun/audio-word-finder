@@ -26,6 +26,10 @@ new #[Title('Search Results')] class extends Component {
 
         $this->query = $this->search->query;
         $this->files = $this->search->files;
+
+        foreach ($this->files as $file) {
+            Log::debug('Search View: search "{query}" - adding file {name}', ['query' => $this->query, 'name' => $file->audio_filename]);
+        }
     }
 
     public function delete()
@@ -61,13 +65,17 @@ new #[Title('Search Results')] class extends Component {
 <div>
     <div class="flex flex-row flex-wrap items-center justify-between gap-2">
         <flux:heading size="xl" level="1">Results</flux:heading>
-        <livewire:confirm-delete @delete="delete" icon="trash"/>
+        <flux:modal.trigger name="delete-search">
+            <flux:button size="sm" variant="danger" icon="trash">Delete</flux:button>
+        </flux:modal.trigger>
     </div>
+
+    <livewire:confirm-delete @delete="delete" name="delete-search" />
+
     <flux:subheading class="mt-2">Searching {{ count($files) }} files for "{{ $query }}"</flux:subheading>
 
     <div class="flex flex-row flex-wrap items-center justify-between gap-2">
         <flux:heading size="lg" level="2" class="mt-8">Summary</flux:heading>
-        <!-- <flux:button @click="window.print()" size="xs" variant="ghost" icon="printer">Print</flux:button> -->
     </div>
     <div @if ($search->status !== SearchStatus::Completed) wire:poll.2s @endif>
         @if ($search->status === SearchStatus::Completed && $search->query_total > 0)

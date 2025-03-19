@@ -14,7 +14,7 @@ class Search extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['query', 'user_id', 'status'];
+    protected $fillable = ['query', 'user_id', 'status', 'completion_email'];
 
     protected $casts = [
         'status' => SearchStatus::class,

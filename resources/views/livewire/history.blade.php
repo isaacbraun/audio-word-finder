@@ -11,15 +11,21 @@ new #[Title('History')] class extends Component {
 
     public string $sortBy = 'created_at';
     public string $sortDirection = 'desc';
+    public Search $selectedSearch;
 
-    public function delete(Search $search)
+    public function setSelected(Search $search): void
+    {
+        $this->selectedSearch = $search;
+    }
+
+    public function delete(): void
     {
         try {
-            Log::info('History: deleting search {search}', ['search' => $search->id]);
-            $search->delete();
+            Log::info('History: deleting search {search}', ['search' => $this->selectedSearch->id]);
+            $this->selectedSearch->delete();
             $this->redirectRoute('history', navigate: true);
         } catch (\Exception $e) {
-            Log::error('History: error deleting search {search}: {exception}', ['search' => $search, 'exception' => $e]);
+            Log::error('History: error deleting search {search}: {exception}', ['search' => $this->selectedSearch->id, 'exception' => $e]);
         }
     }
 
@@ -44,6 +50,8 @@ new #[Title('History')] class extends Component {
 
 <div>
     <flux:heading size="xl" level="1">History</flux:heading>
+
+    <livewire:confirm-delete @delete="delete" name="delete-search" />
 
     <flux:table :paginate="$this->searches">
         <flux:table.columns>
@@ -73,7 +81,9 @@ new #[Title('History')] class extends Component {
                         <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" inset="top bottom"></flux:button>
 
                         <flux:menu>
-                            <flux:menu.item icon="trash" variant="danger">Delete</flux:menu.item>
+                            <flux:modal.trigger name="delete-search" wire:click="setSelected({{ $search }})">
+                                <flux:menu.item icon="trash" variant="danger">Delete</flux:menu.item>
+                            </flux:modal.trigger>
                         </flux:menu>
                     </flux:dropdown>
                 </flux:table.cell>
