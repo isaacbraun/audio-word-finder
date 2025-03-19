@@ -3,7 +3,7 @@
 use Livewire\Volt\Component;
 
 new class extends Component {
-    public string $icon = '';
+    public string $name;
 
     public function delete()
     {
@@ -12,10 +12,7 @@ new class extends Component {
 }; ?>
 
 <div>
-    <flux:modal.trigger name="confirm-delete">
-        <flux:button size="sm" variant="danger" :icon="$icon">Delete</flux:button>
-    </flux:modal.trigger>
-    <flux:modal name="confirm-delete" class="min-w-[22rem]">
+    <flux:modal :name="$name" class="min-w-[22rem]">
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg">Delete search?</flux:heading>
