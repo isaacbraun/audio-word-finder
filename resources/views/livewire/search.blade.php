@@ -61,35 +61,9 @@ new #[Title('Search Results')] class extends Component {
 <div>
     <div class="flex flex-row flex-wrap items-center justify-between gap-2">
         <flux:heading size="xl" level="1">Results</flux:heading>
-        <flux:modal.trigger name="delete-search">
-            <flux:button size="sm" variant="danger" icon="trash">Delete</flux:button>
-        </flux:modal.trigger>
+        <livewire:confirm-delete @delete="delete" icon="trash"/>
     </div>
     <flux:subheading class="mt-2">Searching {{ count($files) }} files for "{{ $query }}"</flux:subheading>
-
-
-    <flux:modal name="delete-search" class="min-w-[22rem]">
-        <div class="space-y-6">
-            <div>
-                <flux:heading size="lg">Delete search?</flux:heading>
-
-                <flux:subheading>
-                    <p>You're about to delete this search.</p>
-                    <p>This action cannot be reversed.</p>
-                </flux:subheading>
-            </div>
-
-            <div class="flex gap-2">
-                <flux:spacer />
-
-                <flux:modal.close>
-                    <flux:button variant="ghost">Cancel</flux:button>
-                </flux:modal.close>
-
-                <flux:button wire:click="delete" type="submit" variant="danger">Delete search</flux:button>
-            </div>
-        </div>
-    </flux:modal>
 
     <div class="flex flex-row flex-wrap items-center justify-between gap-2">
         <flux:heading size="lg" level="2" class="mt-8">Summary</flux:heading>
