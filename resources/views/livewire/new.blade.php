@@ -15,12 +15,17 @@ use Illuminate\Support\Facades\Log;
 new #[Title('New Search')] class extends Component
 {
     use WithFileUploads;
-    // The list of files without data
+
+    // Track individual files with their metadata
     public $fileList = [];
     public $canSubmit = true;
 
     #[Validate('required')]
     public $query = '';
+
+    #[Validate('required')]
+    public $completionEmail = true;
+
     #[Validate(
         [
             'uploadQueue' => 'required',
@@ -36,17 +41,26 @@ new #[Title('New Search')] class extends Component
         message: [
             'uploadQueue' => 'Please select at least one audio file.',
             'uploadQueue.*' => 'Please select audio files.',
-        ],
+        ]
     )]
     public $uploadQueue = [];
-    #[Validate('required')]
-    public $completionEmail = true;
 
     public function removeFile($index)
     {
         $this->canSubmit = false;
         unset($this->fileList[$index]);
         unset($this->uploadQueue[$index]);
+        // Reindex arrays to avoid gaps
+        $this->fileList = array_values($this->fileList);
+        $this->uploadQueue = array_values($this->uploadQueue);
+        $this->canSubmit = true;
+    }
+
+    public function clearFiles()
+    {
+        $this->canSubmit = false;
+        $this->fileList = [];
+        $this->uploadQueue = [];
         $this->canSubmit = true;
     }
 
@@ -87,9 +101,10 @@ new #[Title('New Search')] class extends Component
 
     public function submitFiles()
     {
+        // Validate the form
         $this->validate();
 
-        if ($this->canSubmit) {
+        if ($this->canSubmit && count($this->uploadQueue) > 0) {
             $searchModel = DB::transaction(function () {
                 // Create Search DB entry
                 $searchEntry = Search::create([
@@ -100,21 +115,21 @@ new #[Title('New Search')] class extends Component
                 ]);
 
                 $fileEntries = [];
-                foreach ($this->uploadQueue as $file) {
+                foreach ($this->uploadQueue as $index => $file) {
+                    // Get the original filename from our fileList
+                    $originalFilename = $this->fileList[$index]['name'];
+
                     // Store file
                     $path = $file->store(path: 'audioFiles');
 
-                    // Get client file name
-                    $clientName = basename($file->getClientOriginalName());
-
                     // Attempt parsing of date from client file name
-                    $parsedDate = $this->parseDate($clientName);
+                    $parsedDate = $this->parseDate($originalFilename);
 
-                    // Sanatize client file name
-                    $clientName = preg_replace('/[^\w\-\.\s]/', '', $clientName);
+                    // Sanitize client file name
+                    $clientName = preg_replace('/[^\w\-\.\s]/', '', $originalFilename);
                     $clientName = substr($clientName, 0, 255);
 
-                    // Create new AudioFile DB entry - $parseDate may be intentionally null.
+                    // Create new AudioFile DB entry
                     $fileEntry = new AudioFile([
                         'audio_path' => $path,
                         'audio_filename' => $clientName,
@@ -125,12 +140,13 @@ new #[Title('New Search')] class extends Component
 
                     // Add entry to array
                     $fileEntries[] = $fileEntry;
+                }
 
-                    // Add file entries to related search and save
-                    $searchEntry->files()->saveMany($fileEntries);
+                // Add file entries to related search and save
+                $searchEntry->files()->saveMany($fileEntries);
 
-
-                    // Dispatch ProcessFile Job
+                // Dispatch ProcessFile Jobs
+                foreach ($fileEntries as $fileEntry) {
                     ProcessFile::dispatch($searchEntry, $fileEntry);
                 }
 
@@ -154,52 +170,80 @@ new #[Title('New Search')] class extends Component
                 localFiles: $wire.entangle('fileList'),
                 canSubmit: $wire.entangle('canSubmit'),
 
-                handleFileSelection(event) {
+                addFiles(event) {
                     // Get files from input
                     const files = event.target.files;
 
-                    // Create local previews immediately
-                    this.localFiles = [];
-                    for (const file of files) {
+                    if (files.length === 0) return;
+
+                    // Start upload process
+                    this.canSubmit = false;
+
+                    // Define allowed audio MIME types
+                    const allowedTypes = ['audio/wav','audio/x-wav','audio/mpeg','audio/mp3','audio/mp4','audio/aac','audio/ogg','audio/webm','audio/flac','application/octet-stream'];
+
+
+                    // Maximum file size in bytes (25MB)
+                    const maxFileSize = 25 * 1024 * 1024;
+
+                    // Process each file individually
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+
+                        // Add to local preview immediately
+                        const newIndex = this.localFiles.length;
+                        // Validate file type and size
+                        const isAudioFile = allowedTypes.includes(file.type) ||
+                           file.name.match(/\.(mp3|wav|ogg|aac|m4a|flac)$/i) !== null;
+                        const isValidSize = file.size <= maxFileSize;
+
                         this.localFiles.push({
                             name: file.name,
                             type: file.type,
                             size: file.size,
                             uploaded: false,
-                            error: false,
+                            error: !isAudioFile || !isValidSize,
+                            errorMessage: !isAudioFile
+                                ? 'Unsupported file type.'
+                                : (!isValidSize ? 'File exceeds maximum size of 25MB' : '')
                         });
-                    }
 
-                    // Start upload process
-                    this.canSubmit = false;
-
-                    for (let i = 0; i < files.length; i++) {
-                        $wire.$upload('uploadQueue', files[i],
-                            finish = () => {
-                                this.localFiles[i].uploaded = true;
-                                if (i === files.length - 1) {
-                                    this.canSubmit = true;
+                        // Upload the file
+                        if (isAudioFile && isValidSize) {
+                            $wire.upload('uploadQueue.' + newIndex, file,
+                                (uploadedFilename) => {
+                                    // Success callback
+                                    this.localFiles[newIndex].uploaded = true;
+                                },
+                                (error) => {
+                                    // Error callback
+                                    this.localFiles[newIndex].error = true;
+                                    this.localFiles[newIndex].errorMessage = error;
+                                },
+                                (progress) => {
+                                    // Progress callback if needed
                                 }
-                            },
-                            error = (error) => {
-                                this.localFiles[i].error = true;
-                            }
-                        );
+                            );
+                        }
                     }
+
+                    this.canSubmit = true;
+
+                    // Clear the input so the same files can be selected again if needed
+                    event.target.value = '';
                 }
             }">
             <flux:input type="text" wire:model="query" label="Word or Phrase" />
-
 
             <flux:switch wire:model.live="completionEmail" label="Completion email" description="Receive an email when the search is complete." />
 
             <flux:fieldset>
                 <flux:legend>Audio Files</flux:legend>
 
-                <!-- Show file input if no files are selected -->
-                <div x-show="localFiles.length === 0">
-                    <flux:input type="file" label="Select one or more audio files" multiple
-                        x-on:change="handleFileSelection" accept="audio/*" />
+                <!-- File input is always visible -->
+                <div>
+                    <flux:input type="file" label="Select one or more audio files. Invalid files (marked with red triangle) will NOT be uploaded." multiple
+                        x-on:change="addFiles" accept="audio/*" />
                 </div>
 
                 @error('uploadQueue')
@@ -210,7 +254,7 @@ new #[Title('New Search')] class extends Component
                 @enderror
 
                 <!-- Show file list if files are selected -->
-                <div x-show="localFiles.length > 0" class="flex flex-row flex-wrap gap-2 items-center justify-between">
+                <div wire:cloak x-show="localFiles.length > 0" class="flex flex-row flex-wrap gap-2 items-center justify-between mt-4">
                     <div class="flex flex-row gap-2 items-center">
                         <flux:heading>Selected <span x-text="localFiles.length"></span> File/s</flux:heading>
                         <template x-if="!canSubmit">
@@ -221,27 +265,34 @@ new #[Title('New Search')] class extends Component
                         </template>
                     </div>
 
-                    <flux:button size="sm" @click="localFiles = [];" label="Remove all files from upload queue" variant="subtle">
+                    <flux:button size="sm" wire:click="clearFiles" label="Remove all files from upload queue" variant="subtle">
                         Clear All
                     </flux:button>
                 </div>
 
-                <!-- Display local previews immediately -->
+                <!-- Display file list -->
                 <ul class="mt-2 flex flex-col gap-2">
                     <template x-for="(file, index) in localFiles" :key="index">
                         <li>
-                            <flux:callout variant="default" inline>
+                            <flux:callout inline>
                                 <flux:callout.heading x-text="file.name"></flux:callout.heading>
 
+                                <template x-if="file.error">
+                                    <flux:callout.text x-text="file.errorMessage"></flux:callout.text>
+                                </template>
+
                                 <x-slot name="controls" class="flex flex-row items-center gap-2">
-                                    <template x-if="!file.uploaded">
+                                    <template x-if="!file.uploaded && !file.error">
                                         <flux:icon.loading variant="micro" />
                                     </template>
                                     <template x-if="file.uploaded">
                                         <flux:icon.check variant="mini" class="[--callout-icon:var(--color-accent)]" />
                                     </template>
+                                    <template x-if="file.error">
+                                        <flux:icon.exclamation-triangle variant="mini" class="[--callout-icon:var(--color-red-400)]" />
+                                    </template>
                                     <flux:button @click="$wire.removeFile(index)"
-                                        x-bind:disabled="!file.uploaded"
+                                        x-bind:disabled="!file.uploaded && !file.error"
                                         icon="x-mark" size="sm" label="Remove file from upload queue"
                                         variant="subtle">
                                     </flux:button>
@@ -249,7 +300,6 @@ new #[Title('New Search')] class extends Component
                             </flux:callout>
                         </li>
                     </template>
-
                 </ul>
             </flux:fieldset>
 
