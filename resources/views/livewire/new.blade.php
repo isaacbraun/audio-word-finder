@@ -278,7 +278,7 @@ new #[Title('New Search')] class extends Component
                                 <flux:callout.heading x-text="file.name"></flux:callout.heading>
 
                                 <template x-if="file.error">
-                                    <flux:callout.text x-text="file.errorMessage"></flux:callout.text>
+                                    <flux:callout.text><span x-text="file.errorMessage"></span> This file will NOT be uploaded.</flux:callout.text>
                                 </template>
 
                                 <x-slot name="controls" class="flex flex-row items-center gap-2">
