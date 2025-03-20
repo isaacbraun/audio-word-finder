@@ -26,18 +26,14 @@ new #[Title('Search Results')] class extends Component {
 
         $this->query = $this->search->query;
         $this->files = $this->search->files;
-
-        foreach ($this->files as $file) {
-            Log::info('Search View: search "{query}" - adding file {name}', ['query' => $this->query, 'name' => $file->audio_filename]);
-        }
     }
 
     public function delete()
     {
         try {
             Log::info('Search: deleting search {search}', ['search' => $this->search->id]);
-            $this->search->delete();
             $this->redirectRoute('history', navigate: true);
+            $this->search->delete();
         } catch (\Exception $e) {
             Log::error('Search: error deleting search {search}: {exception}', ['search' => $this->search, 'exception' => $e]);
         }
