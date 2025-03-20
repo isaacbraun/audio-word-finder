@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Search;
+use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\{Title, Computed};
@@ -23,7 +24,10 @@ new #[Title('History')] class extends Component {
         try {
             Log::info('History: deleting search {search}', ['search' => $this->selectedSearch->id]);
             $this->selectedSearch->delete();
-            $this->redirectRoute('history', navigate: true);
+            // Close modal
+            Flux::modal('delete-search')->close();
+            // Refresh computed searches() property
+            unset($this->searches);
         } catch (\Exception $e) {
             Log::error('History: error deleting search {search}: {exception}', ['search' => $this->selectedSearch->id, 'exception' => $e]);
         }
