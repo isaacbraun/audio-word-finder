@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 new #[Title('New Search')] class extends Component
 {
@@ -120,7 +121,7 @@ new #[Title('New Search')] class extends Component
                     $originalFilename = $this->fileList[$index]['name'];
 
                     // Store file
-                    $path = $file->store(path: 'audioFiles');
+                    $path = Storage::putFile('audioFiles', $file);
 
                     // Attempt parsing of date from client file name
                     $parsedDate = $this->parseDate($originalFilename);
@@ -136,7 +137,6 @@ new #[Title('New Search')] class extends Component
                         'parsed_date' => $parsedDate,
                     ]);
 
-                    Log::info('New View: search "{query}" - adding file {name}', ['query' => $this->query, 'name' => $fileEntry->audio_filename]);
 
                     // Add entry to array
                     $fileEntries[] = $fileEntry;
@@ -152,6 +152,8 @@ new #[Title('New Search')] class extends Component
 
                 return $searchEntry;
             });
+
+            Log::info('Created New Search: search "{query}"');
 
             $this->redirectRoute('search', ['id' => $searchModel->id], navigate: true);
         }
