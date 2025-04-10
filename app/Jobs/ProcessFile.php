@@ -52,9 +52,11 @@ class ProcessFile implements ShouldQueue
             throw new \Exception('matchCount not found in JSON response');
         }
 
-        // Store transcription response to file
+        // Store search response to file
         $transcription_path = 'transcriptions/' . Str::uuid()->toString() . '.json';
         Storage::put($transcription_path, json_encode($matches_json));
+
+        // TODO: create CSV of filename/parsed date and match count
 
         // Update File Model
         $this->file->query_count = $matches_json['matchCount'];
@@ -177,7 +179,8 @@ class ProcessFile implements ShouldQueue
     {
         $result = [
             'matchCount' => 0,
-            'segments' => []
+            'segments' => [],
+            'fullText' => $text,
         ];
 
         if (empty($searchString) || empty($text)) {
