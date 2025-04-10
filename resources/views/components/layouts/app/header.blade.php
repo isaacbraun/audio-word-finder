@@ -1,10 +1,17 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark scroll-smooth">
     <head>
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
-        <flux:header container class="sticky top-0 border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+        <nav aria-label="Skip links">
+            <ul>
+                <li><a href="#navigation" class="sr-only" title="Skip to Navigation">Skip to Navigation</a></li>
+                <li><a href="#content" class="sr-only" title="Skip to Content">Skip to Content</a></li>
+            </ul>
+        </nav>
+
+        <flux:header id="navigation" container class="sticky top-0 border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
             <a href="{{ route('home') }}" class="hidden md:flex ml-2 mr-5 items-center space-x-2 lg:ml-0" wire:navigate.hover>
