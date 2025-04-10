@@ -4,15 +4,12 @@ namespace App\Jobs;
 
 use App\Models\AudioFile;
 use App\Models\Search;
-use App\Enums\SearchStatus;
-use App\Mail\SearchFinished;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class ProcessFile implements ShouldQueue
 {
@@ -75,7 +72,7 @@ class ProcessFile implements ShouldQueue
 
         $this->search->fresh();
         // Check search status
-        $this->whenFinished();
+        $this->search->whenFinished();
     }
 
     /**
@@ -92,32 +89,12 @@ class ProcessFile implements ShouldQueue
         $this->file->save();
 
         // Check Search status
-        $this->whenFinished();
-        $this->search->save();
+        $this->search->whenFinished();
 
         if (app()->bound('sentry')) {
             app('sentry')->captureException($exception);
         } else {
             Log::warning('Sentry not bound');
-        }
-    }
-
-    /**
-     * Check if all the files have bee processed.
-     * If so, update Search status and email user
-     */
-    protected function whenFinished(): void
-    {
-        // Check if all files have been processed
-        $processedFilesCount = $this->search->files()->where('transcription_path', '!=', null)->count();
-        if ($processedFilesCount === $this->search->files()->count()) {
-            $this->search->status = SearchStatus::Completed;
-            $this->search->save();
-
-            // Send user email of completion
-            if ($this->search->completion_email) {
-                Mail::to($this->search->user)->send(new SearchFinished($this->search));
-            }
         }
     }
 

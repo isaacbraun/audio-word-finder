@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use App\Mail\SearchFinished;
 use App\Enums\SearchStatus;
 use App\Jobs\ProcessFile;
+use App\Jobs\CreateReport;
 
 class Search extends Model
 {
@@ -73,5 +76,34 @@ class Search extends Model
 
             return $search;
         });
+    }
+
+    /**
+     * Check if all the files have bee processed.
+     * If so, update Search status and email user
+     */
+    public function whenFinished(): void
+    {
+        $filesCount = static::files()->count();
+        $processedFilesCount = static::files()->where('transcription_path', '!=', null)->count();
+
+        // Create CSV if all files have been processed
+        if ($processedFilesCount === $filesCount) {
+            CreateReport::dispatch($this);
+        }
+    }
+
+    /**
+     * Set status to completed and send email
+     */
+    public function completeAndEmail(): void
+    {
+        $this->status = SearchStatus::Completed;
+        static::save();
+
+        // Send user email of completion
+        if ($this->completion_email) {
+            Mail::to($this->user)->send(new SearchFinished($this));
+        }
     }
 }

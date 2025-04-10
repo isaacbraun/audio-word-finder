@@ -2,9 +2,11 @@
 
 use App\Models\Search;
 use App\Enums\SearchStatus;
+use App\Jobs\CreateReport;
 use Livewire\Volt\Component;
 use Livewire\Attributes\{Computed};
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 new class extends Component {
@@ -35,26 +37,6 @@ new class extends Component {
         $view->title('Results for "' . $this->query . '"');
     }
 
-    public function delete()
-    {
-        try {
-            Log::info('Search: deleting search {search}', ['search' => $this->search->id]);
-            $this->redirectRoute('history', navigate: true);
-            $this->search->delete();
-        } catch (\Exception $e) {
-            Log::error('Search: error deleting search {search}: {exception}', ['search' => $this->search, 'exception' => $e]);
-        }
-    }
-
-    public function toggleSort(): void
-    {
-        if ($this->sortDirection === 'desc') {
-            $this->sortDirection = 'asc';
-        } else {
-            $this->sortDirection = 'desc';
-        }
-    }
-
     #[Computed]
     public function filteredFiles()
     {
@@ -83,6 +65,33 @@ new class extends Component {
             return 'danger';
         }
     }
+
+    public function delete()
+    {
+        try {
+            Log::info('Search: deleting search {search}', ['search' => $this->search->id]);
+            $this->redirectRoute('history', navigate: true);
+            $this->search->delete();
+        } catch (\Exception $e) {
+            Log::error('Search: error deleting search {search}: {exception}', ['search' => $this->search, 'exception' => $e]);
+        }
+    }
+
+    public function downloadReport(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $name = 'audio-search-report-' . $this->search->id . '.csv';
+
+        return Storage::download($this->search->report_path, $name);
+    }
+
+    public function toggleSort(): void
+    {
+        if ($this->sortDirection === 'desc') {
+            $this->sortDirection = 'asc';
+        } else {
+            $this->sortDirection = 'desc';
+        }
+    }
 }; ?>
 
 <div>
@@ -100,22 +109,29 @@ new class extends Component {
     <!-- Processing status/results -->
     <div @if ($search->status !== SearchStatus::Completed) wire:poll.2s @endif>
         <flux:callout class="my-8" inline variant="{{ $this->statusVariant }}">
-            @if ($search->status === SearchStatus::Completed && $search->query_total > 0)
+            @if ($search->status === SearchStatus::Processing)
+            <flux:callout.heading>
+                Processing {{ count($files) }} {{ Str::plural('file', count($files)) }}
+                <flux:icon.loading variant="mini" />
+            </flux:callout.heading>
+            @elseif ($search->status === SearchStatus::Completed && $search->query_total > 0)
             <flux:callout.heading>
                 Processing Completed
                 <flux:text>{{ $search->query_total }} Total {{ Str::plural('Match', $search->query_total) }}</flux:text>
             </flux:callout.heading>
 
+            @if ($search->report_path !== null)
             <x-slot name="actions">
-                <flux:button icon="arrow-down-tray">Export Matches</flux:button>
+                <flux:button wire:click="downloadReport" icon="arrow-down-tray">Export Matches</flux:button>
             </x-slot>
-            @elseif ($search->status === SearchStatus::Processing)
+            @endif
+            @elseif ($search->status === SearchStatus::Completed && $search->query_total === 0)
             <flux:callout.heading>
-                Processing {{ count($files) }} {{ Str::plural('file', count($files)) }}
-                <flux:icon.loading variant="mini" />
+                Processing Completed
+                <flux:text>No matches found</flux:text>
             </flux:callout.heading>
             @else
-            <flux:callout.heading>No matches found</flux:callout.heading>
+            <flux:callout.heading>Processing failed</flux:callout.heading>
             @endif
         </flux:callout>
     </div>
