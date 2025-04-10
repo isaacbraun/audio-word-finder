@@ -47,7 +47,7 @@ new #[Title('History')] class extends Component {
     public function searches()
     {
         return Auth::user()->searches()
-            ->tap(fn($query) => $this->sortBy ? $query->orderBy($this->sortBy, $this->sortDirection) : $query)
+            ->orderBy($this->sortBy, $this->sortDirection)
             ->paginate(20);
     }
 }; ?>
