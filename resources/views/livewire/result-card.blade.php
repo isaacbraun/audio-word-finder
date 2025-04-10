@@ -30,6 +30,12 @@ new class extends Component {
         return $this->file->query_count . ' ' . Str::plural('Match', $this->file->query_count);
     }
 
+    #[Computed()]
+    public function copyTitle(): string
+    {
+        return "Copy transcription of " . $this->file->audio_filename . " to clipboard";
+    }
+
     public function retry()
     {
         // Reset transcription path and failed var to show correct UI state
@@ -71,7 +77,7 @@ new class extends Component {
 
                     @if ($this->file->query_count !== null)
                     <flux:badge size="sm" inset="top bottom" color="{{ $this->file->query_count === 0 ? 'rose' : 'emerald' }}">
-                        {{ $this->file->query_count }} Matches
+                        {{ $this->badgeString }}
                     </flux:badge>
                     @endif
                 </flux:heading>
@@ -89,7 +95,7 @@ new class extends Component {
                 icon:trailing="document-duplicate"
                 variant="subtle"
                 size="sm"
-                title="Copy transcription to clipboard"
+                title="{{ $this->copyTitle }}"
                 inset></flux:button>
             @endif
         </div>
