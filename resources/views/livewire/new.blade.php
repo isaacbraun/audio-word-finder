@@ -115,18 +115,22 @@ new #[Title('New Search')] class extends Component
             <flux:callout class="my-2" variant="danger" icon="exclamation-triangle" heading="{{ $message }}" />
             @enderror
 
-            <div x-cloak x-show="localFiles.length > 0" class="flex flex-row flex-wrap gap-2 items-center justify-between mt-4">
-                <div class="flex flex-row gap-2 items-center">
-                    <flux:heading>Selected <span x-text="localFiles.length"></span> File/s</flux:heading>
-                    <template x-if="!uploading">
-                        <flux:icon.check variant="mini" class="text-accent" />
-                    </template>
-                    <template x-if="uploading">
-                        <flux:icon.loading variant="micro" />
-                    </template>
+            <div x-cloak x-show="localFiles.length > 0" class="flex flex-row flex-wrap gap-2 items-end justify-between mt-4">
+                <div>
+                    <div class="flex flex-row gap-2 items-center">
+                        <flux:heading>Selected <span x-text="localFiles.length"></span><span x-text="localFiles.length === 1 ? ' File' : ' Files'"></span></flux:heading>
+                        <template x-if="!uploading">
+                            <flux:icon.check variant="mini" class="text-accent" />
+                        </template>
+                        <template x-if="uploading">
+                            <flux:icon.loading variant="micro" />
+                        </template>
+                    </div>
+                    <flux:subheading>Uploaded: <span x-text="successCount"></span><span x-text="successCount === 1 ? ' File' : ' Files'"></span></flux:subheading>
+                    <flux:subheading class="text-red-400" x-show="failureCount > 0">Failed: <span x-text="failureCount"></span><span x-text="failureCount === 1 ? ' File' : ' Files'"></span></flux:subheading>
                 </div>
 
-                <flux:button size="sm" @click="clear" label="Remove all files from upload queue" variant="subtle">
+                <flux:button size="sm" @click="clear" label="Remove all files from upload queue" variant="danger">
                     Clear All
                 </flux:button>
             </div>
@@ -135,7 +139,7 @@ new #[Title('New Search')] class extends Component
                 <template x-for="(file, index) in localFiles" :key="index">
                     <li>
                         <flux:callout inline>
-                            <flux:callout.heading x-text="file.name"></flux:callout.heading>
+                            <flux:callout.heading class="break-all" x-text="file.name"></flux:callout.heading>
 
                             <template x-if="file.error">
                                 <flux:callout.text><span x-text="file.errorMessage"></span> This file will NOT be uploaded.</flux:callout.text>
@@ -146,10 +150,10 @@ new #[Title('New Search')] class extends Component
                                     <flux:icon.loading variant="micro" />
                                 </template>
                                 <template x-if="file.uploaded">
-                                    <flux:icon.check variant="mini" class="[--callout-icon:var(--color-accent)]" />
+                                    <flux:icon.check variant="mini" class="text-accent" />
                                 </template>
                                 <template x-if="file.error">
-                                    <flux:icon.exclamation-triangle variant="mini" class="[--callout-icon:var(--color-red-400)]" />
+                                    <flux:icon.exclamation-triangle variant="mini" class="text-red-400" />
                                 </template>
                                 <flux:button @click="remove(index)"
                                     x-bind:disabled="!file.uploaded && !file.error"
@@ -168,103 +172,108 @@ new #[Title('New Search')] class extends Component
     </form>
 </div>
 
+@script
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('uploadHandler', () => ({
-            localFiles: [],
-            uploading: false,
+    Alpine.data('uploadHandler', () => ({
+        localFiles: [],
+        uploading: false,
+        successCount: 0,
+        failureCount: 0,
 
-            onFileDropped(event) {
-                this._addFiles(event.dataTransfer.files);
-            },
+        onFileDropped(event) {
+            this._addFiles(event.dataTransfer.files);
+        },
 
-            onFileInputChanged(event) {
-                this._addFiles(event.target.files);
-            },
+        onFileInputChanged(event) {
+            this._addFiles(event.target.files);
+        },
 
-            remove(index) {
-                this.localFiles.splice(index, 1);
-                this.$wire.removeFile(index);
-            },
+        remove(index) {
+            this.localFiles.splice(index, 1);
+            this.$wire.removeFile(index);
+        },
 
-            clear() {
-                this.localFiles = [];
-                this.$wire.clearFiles();
-            },
+        clear() {
+            this.localFiles = [];
+            this.$wire.clearFiles();
+        },
 
-            _addFiles(files) {
-                if (files.length === 0) return;
+        _addFiles(files) {
+            if (files.length === 0) return;
 
-                this.uploading = true;
+            this.uploading = true;
 
-                // Reset files to avoid conflicts
-                this.clear();
+            // Reset files to avoid conflicts
+            this.clear();
 
-                const fileArray = Array.from(files);
+            const fileArray = Array.from(files);
 
-                Promise.allSettled(fileArray.map((file, index) => {
-                    // Add to local preview immediately
-                    const error = this._initFileItem(file);
+            Promise.allSettled(fileArray.map((file, index) => {
+                // Add to local preview immediately
+                const error = this._initFileItem(file);
 
-                    if (error) {
-                        return Promise.reject("Invalid file type or size");
-                    }
+                if (error) {
+                    this.failureCount++;
+                    return Promise.reject("Invalid file type or size");
+                }
 
-                    // Upload the file
-                    return this._uploadFile(index, file);
-                })).then(() => {
-                    this.uploading = false;
-                }).catch(() => {
-                    this.uploading = false;
-                });
-            },
+                // Upload the file
+                return this._uploadFile(index, file);
+            })).then(() => {
+                this.uploading = false;
+            }).catch(() => {
+                this.uploading = false;
+            });
+        },
 
-            /**
-             * Creates and adds a new file item to localFiles array.
-             * @param {File} file - The File object to add.
-             * @returns {void}
-             */
-            _initFileItem(file) {
-                const allowedTypes = ['audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/aac', 'audio/ogg', 'audio/webm', 'audio/flac'];
-                const maxFileSize = 25 * 1024 * 1024; // 25MB
+        /**
+         * Creates and adds a new file item to localFiles array.
+         * @param {File} file - The File object to add.
+         * @returns {void}
+         */
+        _initFileItem(file) {
+            const allowedTypes = ['audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/aac', 'audio/ogg', 'audio/webm', 'audio/flac'];
+            const maxFileSize = 25 * 1024 * 1024; // 25MB
 
-                // Validate file type and size
-                const isAudioFile = allowedTypes.includes(file.type) ||
-                    file.name.match(/\.(mp3|wav|ogg|aac|m4a|flac)$/i) !== null;
-                const isValidSize = file.size <= maxFileSize;
+            // Validate file type and size
+            const isAudioFile = allowedTypes.includes(file.type) ||
+                file.name.match(/\.(mp3|wav|ogg|aac|m4a|flac)$/i) !== null;
+            const isValidSize = file.size <= maxFileSize;
 
-                this.localFiles.push({
-                    name: file.name,
-                    type: file.type,
-                    size: file.size,
-                    uploaded: false,
-                    error: !isAudioFile || !isValidSize,
-                    errorMessage: !isAudioFile ?
-                        'Unsupported file type.' : (!isValidSize ? 'File exceeds maximum size of 25MB' : '')
-                });
+            this.localFiles.push({
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                uploaded: false,
+                error: !isAudioFile || !isValidSize,
+                errorMessage: !isAudioFile ?
+                    'Unsupported file type.' : (!isValidSize ? 'File exceeds maximum size of 25MB' : '')
+            });
 
-                return !isAudioFile || !isValidSize;
-            },
+            return !isAudioFile || !isValidSize;
+        },
 
-            /**
-             * Upload file and handle callbacks.
-             * @param {File} file - The File object to upload.
-             */
-            _uploadFile(index, file) {
-                return new Promise((resolve, reject) => {
-                    this.$wire.upload('uploadedFiles.' + index, file,
-                        (uploadedFilename) => {
-                            this.localFiles[index].uploaded = true;
-                            resolve("Upload successful");
-                        },
-                        (error) => {
-                            this.localFiles[index].error = true;
-                            this.localFiles[index].errorMessage = error;
-                            reject("Upload failed");
-                        },
-                    );
-                });
-            }
-        }));
-    });
+        /**
+         * Upload file and handle callbacks.
+         * @param {File} file - The File object to upload.
+         */
+        _uploadFile(index, file) {
+            return new Promise((resolve, reject) => {
+                this.$wire.upload('uploadedFiles.' + index, file,
+                    (uploadedFilename) => {
+                        this.localFiles[index].uploaded = true;
+                        this.successCount++;
+                        resolve("Upload successful");
+                    },
+                    (error) => {
+                        this.localFiles[index].error = true;
+                        this.localFiles[index].errorMessage = error;
+                        this.failureCount++;
+                        reject("Upload failed");
+                    },
+                );
+            });
+        }
+    }));
 </script>
+@endscript
