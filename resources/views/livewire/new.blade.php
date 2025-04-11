@@ -1,11 +1,13 @@
 <?php
 
 use App\Models\Search;
-use Livewire\Volt\Component;
-use Livewire\WithFileUploads;
-use Livewire\Attributes\{Title, Validate};
+use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\Title;
+use Livewire\Attributes\Validate;
+use Livewire\Volt\Component;
+use Livewire\WithFileUploads;
 
 new #[Title('New Search')] class extends Component
 {
@@ -56,6 +58,17 @@ new #[Title('New Search')] class extends Component
 
     public function submitFiles()
     {
+        if (!Auth::user()->subscribed() && count($this->uploadedFiles) > 1) {
+            Flux::toast(
+                heading: 'Upload Error',
+                text: 'You must be a Basic plan subscriber to upload more than one file.',
+                variant: 'danger',
+                duration: 10000,
+            );
+
+            return;
+        }
+
         // Validate the form
         $this->validate();
 
@@ -77,7 +90,7 @@ new #[Title('New Search')] class extends Component
     }
 }; ?>
 
-<div>
+<div x-data="uploadHandler">
     <flux:heading size="xl" level="1">Find a word or phrase</flux:heading>
     <flux:subheading>Upload a new file and enter a word or phrase to find.</flux:subheading>
 
@@ -88,20 +101,26 @@ new #[Title('New Search')] class extends Component
 
         <flux:switch wire:model.live="completionEmail" label="Completion email" description="Receive an email when the search is complete." />
 
-        <div x-data="uploadHandler">
+        <div>
             <flux:label>Audio Files</flux:label>
 
             <flux:field class="mt-2">
                 <flux:error name="uploadedFiles" />
 
-                <flux:input type="file" multiple accept="audio/*" id="fileInput" x-on:change="onFileInputChanged" />
+
+                @if (Auth::user()->subscribed())
+                <flux:input multiple type="file" accept="audio/*" id="fileInput" @change="onFileInputChanged" />
+                @else
+                <flux:input type="file" accept="audio/*" id="fileInput" @change="onFileInputChanged" />
+                @endif
 
                 <flux:label
                     for="fileInput"
-                    x-on:dragover.prevent="$event.dataTransfer.dropEffect = 'move'"
-                    x-on:drop.prevent="onFileDropped">
-                    <flux:card class="text-center border-dashed border-2 px-16">
-                        <flux:text>Choose or drop files</flux:text>
+                    @dragover.prevent="handleDragOver"
+                    @dragleave.prevent="handleDragLeave"
+                    @drop.prevent="onFileDropped">
+                    <flux:card class="text-center border-dashed border-2 px-16 transition-colors">
+                        <flux:text class="pointer-events-none">Choose or drop files</flux:text>
                     </flux:card>
                 </flux:label>
 
@@ -168,7 +187,7 @@ new #[Title('New Search')] class extends Component
             </ul>
         </div>
 
-        <flux:button type="submit" variant="primary">Search</flux:button>
+        <flux:button type="submit" variant="primary" x-bind:disabled="uploading">Search</flux:button>
     </form>
 </div>
 
@@ -180,8 +199,25 @@ new #[Title('New Search')] class extends Component
         successCount: 0,
         failureCount: 0,
 
+        handleDragOver(e) {
+            // @prettier-ignore
+            if (!@js(Auth::user()->subscribed()) && e.dataTransfer.items.length > 1) {
+                e.dataTransfer.dropEffect = 'none';
+                e.target.classList.add('!border-red-400');
+                return;
+            }
+
+            e.dataTransfer.dropEffect = 'move';
+            e.target.classList.add('!border-accent');
+        },
+
+        handleDragLeave(event) {
+            event.target.classList.remove('!border-accent', '!border-red-400');
+        },
+
         onFileDropped(event) {
             this._addFiles(event.dataTransfer.files);
+            event.target.classList.remove('!border-accent');
         },
 
         onFileInputChanged(event) {
@@ -189,13 +225,28 @@ new #[Title('New Search')] class extends Component
         },
 
         remove(index) {
-            this.localFiles.splice(index, 1);
+            const file = this.localFiles.splice(index, 1)[0];
             this.$wire.removeFile(index);
+
+            // Update success/failure counts
+            if (file.error) {
+                this.failureCount--;
+            } else {
+                this.successCount--;
+            }
+
+            // Clear file input if no files are left
+            if (this.localFiles.length === 0) {
+                document.querySelector('#fileInput').value = '';
+            }
         },
 
         clear() {
             this.localFiles = [];
             this.$wire.clearFiles();
+            this.successCount = this.thisfailureCount = 0;
+            // Clear file input
+            document.querySelector('#fileInput').value = '';
         },
 
         _addFiles(files) {
