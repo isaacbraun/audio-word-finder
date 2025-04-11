@@ -42,7 +42,7 @@ class SearchFinished extends Mailable
                 'query' => $this->search->query,
                 'query_total' => $this->search->query_total,
                 'count' => count($this->search->files),
-                'url' => route('search', ['id' => $this->search->id], absolute: true),
+                'url' => route('results', ['id' => $this->search->id], absolute: true),
             ],
         );
     }

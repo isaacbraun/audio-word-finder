@@ -85,7 +85,7 @@ new #[Title('New Search')] class extends Component
 
             Log::info('Created New Search: search "{query}"', ['query' => $this->query]);
 
-            $this->redirectRoute('search', ['id' => $search->id], navigate: true);
+            $this->redirectRoute('results', ['id' => $search->id], navigate: true);
         }
     }
 }; ?>
