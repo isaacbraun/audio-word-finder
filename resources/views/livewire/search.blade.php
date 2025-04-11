@@ -120,7 +120,7 @@ new class extends Component {
                 <flux:text>{{ $search->query_total }} Total {{ Str::plural('Match', $search->query_total) }}</flux:text>
             </flux:callout.heading>
 
-            @if ($search->report_path !== null)
+            @if (Auth::user()->subscribed() && $search->report_path !== null)
             <x-slot name="actions">
                 <flux:button wire:click="downloadReport" icon="arrow-down-tray">Export Matches</flux:button>
             </x-slot>
