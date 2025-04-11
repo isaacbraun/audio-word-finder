@@ -3,11 +3,17 @@
 use App\Http\Middleware\Subscribed;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Laravel\Cashier\Http\Controllers\WebhookController;
 use Livewire\Volt\Volt;
 
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+
+Route::post(
+    '/stripe/webhook',
+    [WebhookController::class, 'handleWebhook']
+)->name('cashier.webhook');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Volt::route('new', 'new')->name('new');
@@ -24,7 +30,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/subscribe-basic', function (Request $request) {
         return $request->user()
-            ->newSubscription('basic', 'price_1RCW4qGxj0wgmRdboisPTSu1')
+            ->newSubscription('default', 'price_1RCW4qGxj0wgmRdboisPTSu1')
             ->allowPromotionCodes()
             ->checkout([
                 'success_url' => route('new'),
