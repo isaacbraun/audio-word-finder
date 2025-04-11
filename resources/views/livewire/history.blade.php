@@ -65,11 +65,12 @@ new #[Title('History')] class extends Component {
         </flux:table.columns>
 
         <flux:table.rows>
+            @if ($this->searches->isNotEmpty())
             @foreach ($this->searches as $search)
             <flux:table.row wire:key="{{ $search->id }}">
                 <flux:table.cell>
                     <flux:button
-                        href="search/{{ $search->id }}"
+                        href="results/{{ $search->id }}"
                         wire:navigate.hover
                         variant="ghost"
                         icon-trailing="arrow-top-right-on-square"
@@ -93,6 +94,13 @@ new #[Title('History')] class extends Component {
                 </flux:table.cell>
             </flux:table.row>
             @endforeach
+            @else
+            <flux:table.row>
+                <flux:table.cell colspan="4">
+                    No past searches found
+                </flux:table.cell>
+            </flux:table.row>
+            @endif
         </flux:table.rows>
     </flux:table>
 </div>

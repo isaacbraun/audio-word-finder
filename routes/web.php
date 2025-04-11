@@ -47,7 +47,7 @@ Route::get('/checkout-success', function (Request $request) {
  */
 Route::middleware(['auth', 'verified'])->group(function () {
     Volt::route('new', 'new')->name('new');
-    Volt::route('search/{id}', 'search')->name('search');
+    Volt::route('results/{id}', 'results')->name('results');
     Volt::route('history', 'history')->name('history')->middleware([Subscribed::class]);
 });
 

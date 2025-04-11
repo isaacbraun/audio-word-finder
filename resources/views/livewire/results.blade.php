@@ -2,7 +2,6 @@
 
 use App\Models\Search;
 use App\Enums\SearchStatus;
-use App\Jobs\CreateReport;
 use Livewire\Volt\Component;
 use Livewire\Attributes\{Computed};
 use Illuminate\Support\Facades\Log;
@@ -17,9 +16,8 @@ new class extends Component {
     public string $query;
     /** @var \App\Models\AudioFile[] $files */
     public $files;
-    public string $sortBy = 'query_count';
+    public string $sort = 'query_count|desc';
     public string $activeTab = 'all';
-    public string $sortDirection = 'desc';
 
     public function mount($id)
     {
@@ -40,17 +38,20 @@ new class extends Component {
     #[Computed]
     public function filteredFiles()
     {
+        // Create where clause based on active tab
         $whereClause = [];
-
         if ($this->activeTab === 'matches') {
             $whereClause[] = ['query_count', '>', 0];
         } elseif ($this->activeTab === 'misses') {
             $whereClause[] = ['query_count', '=', 0];
         }
 
+        // Parse sort column and direction
+        [$sortBy, $sortDirection] = explode('|', $this->sort);
+
         return $this->search->files()
             ->where($whereClause)
-            ->orderBy($this->sortBy, $this->sortDirection)
+            ->orderBy($sortBy, $sortDirection)
             ->get();
     }
 
@@ -82,15 +83,6 @@ new class extends Component {
         $name = 'audio-search-report-' . $this->search->id . '.csv';
 
         return Storage::download($this->search->report_path, $name);
-    }
-
-    public function toggleSort(): void
-    {
-        if ($this->sortDirection === 'desc') {
-            $this->sortDirection = 'asc';
-        } else {
-            $this->sortDirection = 'desc';
-        }
     }
 }; ?>
 
@@ -152,7 +144,7 @@ new class extends Component {
                 <flux:tab name="misses">Misses</flux:tab>
             </flux:tabs>
 
-            <flux:select variant="listbox" class="sm:max-w-fit" wire:model.live="sortBy">
+            <flux:select variant="listbox" class="sm:max-w-fit" wire:model.live="sort">
                 <x-slot name="trigger">
                     <flux:select.button>
                         <flux:icon.arrows-up-down variant="micro" class="mr-2 text-zinc-400" />
@@ -160,19 +152,18 @@ new class extends Component {
                     </flux:select.button>
                 </x-slot>
 
-                <flux:select.option value="query_count" selected>Match Count</flux:select.option>
-                <flux:select.option value="parsed_date">Parsed Date</flux:select.option>
-                <flux:select.option value="created_at">Order Uploaded</flux:select.option>
+                <flux:select.option value="query_count|desc" selected>Matches</flux:select.option>
+                <flux:select.option value="parsed_date|asc">Date - Ascending</flux:select.option>
+                <flux:select.option value="parsed_date|desc">Date - Descending</flux:select.option>
+                <flux:select.option value="created_at|asc">Upload Order</flux:select.option>
             </flux:select>
-
-            <!-- <flux:button icon="{{ $sortDirection === 'desc' ? 'arrow-down' : 'arrow-up' }}" wire:click="toggleSort"></flux:button> -->
         </div>
     </div>
     <!-- File list -->
     <div class="mt-4 flex flex-col gap-2">
         @if ($this->filteredFiles->isNotEmpty())
         @foreach ($this->filteredFiles as $file)
-        <livewire:result-card :lazy="$loop->index > 10 ? 'on-load' : ''" :file="$file" wire:key="{{ $file->id }}" />
+        <livewire:file-results :lazy="$loop->index > 10 ? 'on-load' : ''" :file="$file" wire:key="{{ $file->id }}" />
         @endforeach
         @else
         <flux:subheading>No results found</flux:subheading>
