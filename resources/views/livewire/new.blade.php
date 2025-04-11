@@ -204,6 +204,11 @@ new #[Title('New Search')] class extends Component
             if (!@js(Auth::user()->subscribed()) && e.dataTransfer.items.length > 1) {
                 e.dataTransfer.dropEffect = 'none';
                 e.target.classList.add('!border-red-400');
+                Flux.toast({
+                    heading: 'Selection Error',
+                    text: 'Upgrade to select more than one file at a time.',
+                    variant: 'danger',
+                })
                 return;
             }
 
