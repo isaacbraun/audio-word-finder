@@ -8,11 +8,17 @@ use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('components.layouts.auth')] class extends Component {
+new #[Layout('components.layouts.auth')] class extends Component
+{
     public string $name = '';
+
     public string $email = '';
+
     public string $password = '';
+
     public string $password_confirmation = '';
+
+    public string $timezone = '';
 
     /**
      * Handle an incoming registration request.
@@ -23,6 +29,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
+            'timezone' => ['required', 'string', 'timezone'],
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
@@ -50,8 +57,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
             required
             autofocus
             autocomplete="name"
-            :placeholder="__('Full name')"
-        />
+            :placeholder="__('Full name')" />
 
         <!-- Email Address -->
         <flux:input
@@ -60,8 +66,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
             type="email"
             required
             autocomplete="email"
-            placeholder="email@example.com"
-        />
+            placeholder="email@example.com" />
 
         <!-- Password -->
         <flux:input
@@ -70,8 +75,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
             type="password"
             required
             autocomplete="new-password"
-            :placeholder="__('Password')"
-        />
+            :placeholder="__('Password')" />
 
         <!-- Confirm Password -->
         <flux:input
@@ -80,8 +84,14 @@ new #[Layout('components.layouts.auth')] class extends Component {
             type="password"
             required
             autocomplete="new-password"
-            :placeholder="__('Confirm password')"
-        />
+            :placeholder="__('Confirm password')" />
+
+        <!-- Timezone -->
+        <flux:field>
+            <livewire:timezone-select wire:model="timezone" required />
+
+            <flux:error name="timezone" />
+        </flux:field>
 
         <div class="flex items-center justify-end">
             <flux:button type="submit" variant="primary" class="w-full">

@@ -105,20 +105,7 @@ new class extends Component
                 @endif
             </div>
 
-            <flux:select
-                :label="__('Timezone')"
-                searchable
-                placeholder="Choose a timezone"
-                variant="listbox"
-                wire:model="timezone">
-                @foreach (timezone_identifiers_list() as $timezone)
-                <flux:select.option
-                    value="{{ $timezone }}"
-                    :selected="$this->timezone === $timezone">
-                    {{ Str::replace('_', ' ', $timezone) }}
-                </flux:select.option>
-                @endforeach
-            </flux:select>
+            <livewire:timezone-select wire:model="timezone" />
 
             <div class="flex items-center gap-4">
                 <div class="flex items-center justify-end">
