@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\UploadFiles;
 use App\Models\Search;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
@@ -73,19 +74,18 @@ new #[Title('New Search')] class extends Component
         $this->validate();
 
         if ($this->canSubmit && count($this->uploadedFiles) > 0) {
-            // Create search with files
-            $search = Search::createWithFiles(
+            $searchId = Search::createWithFiles(
                 searchData: [
                     'user_id' => Auth::id(),
                     'query' => $this->query,
                     'completion_email' => $this->completionEmail,
                 ],
-                files: $this->uploadedFiles,
+                fileArray: $this->uploadedFiles,
             );
 
             Log::info('Created New Search: search "{query}"', ['query' => $this->query]);
 
-            $this->redirectRoute('results', ['id' => $search->id], navigate: true);
+            $this->redirectRoute('results', ['id' => $searchId], navigate: true);
         }
     }
 }; ?>
@@ -247,8 +247,11 @@ new #[Title('New Search')] class extends Component
         },
 
         clear() {
+            for (let i = 0; i < this.localFiles.length; i++) {
+                this.$wire.cancelUpload('uploadedFiles.' + i);
+            }
             this.localFiles = [];
-            this.$wire.clearFiles();
+            // this.$wire.clearFiles();
             this.successCount = this.thisfailureCount = 0;
             // Clear file input
             document.querySelector('#fileInput').value = '';

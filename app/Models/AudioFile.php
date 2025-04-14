@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -58,12 +57,10 @@ class AudioFile extends Model
      */
     public static function createFromUpload(
         int $searchId,
-        UploadedFile $uploadedFile,
-        string $originalFilename
+        string $path,
+        string $originalFilename,
+        string $timezone,
     ): static {
-        // Store the file
-        $path = $uploadedFile->store('audioFiles');
-
         // Sanitize the filename
         $sanitizedName = static::sanitizeFilename($originalFilename);
 
@@ -72,7 +69,7 @@ class AudioFile extends Model
             'search_id' => $searchId,
             'audio_path' => $path,
             'audio_filename' => $sanitizedName,
-            'parsed_date' => static::parseDate($originalFilename),
+            'parsed_date' => static::parseDate($originalFilename, $timezone),
         ]);
     }
 
@@ -89,7 +86,7 @@ class AudioFile extends Model
     /**
      * Parse the date from the filename
      */
-    protected static function parseDate(string $filename): ?Carbon
+    protected static function parseDate(string $filename, string $timezone): ?Carbon
     {
         // Strict regex that only matches the WSMC skimmer format
         $pattern = "/(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})/";
@@ -104,8 +101,7 @@ class AudioFile extends Model
             $timeString = str_replace('-', ':', $matches[2]); // Convert 14-25-13 to 14:25:13
 
             // Create Carbon instance with validation
-            $dateTime = Carbon::createFromFormat('Y-m-d H:i:s', "$dateString $timeString", Auth::user()->timezone ?? 'UTC')
-                ->setTimezone('UTC');
+            $dateTime = Carbon::createFromFormat('Y-m-d H:i:s', "$dateString $timeString", $timezone)->setTimezone('UTC');
 
             // Additional validation - ensure the date is reasonable
             $now = Carbon::now();
