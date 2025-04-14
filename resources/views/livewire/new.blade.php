@@ -1,6 +1,5 @@
 <?php
 
-use App\Jobs\UploadFiles;
 use App\Models\Search;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
@@ -40,6 +39,15 @@ new #[Title('New Search')] class extends Component
     public $uploadedFiles = [];
 
     public $canSubmit = true;
+    public $fileInfo = [];
+
+    public function addFileInfo(string $name, string $path): void
+    {
+        $this->fileInfo[] = [
+            'name' => $name,
+            'path' => $path,
+        ];
+    }
 
     public function removeFile($index)
     {
@@ -80,7 +88,7 @@ new #[Title('New Search')] class extends Component
                     'query' => $this->query,
                     'completion_email' => $this->completionEmail,
                 ],
-                fileArray: $this->uploadedFiles,
+                fileArray: $this->fileInfo,
             );
 
             Log::info('Created New Search: search "{query}"', ['query' => $this->query]);
@@ -107,7 +115,6 @@ new #[Title('New Search')] class extends Component
             <flux:field class="mt-2">
                 <flux:error name="uploadedFiles" />
 
-
                 @if (Auth::user()->subscribed())
                 <flux:input multiple type="file" accept="audio/*" id="fileInput" @change="onFileInputChanged" />
                 @else
@@ -133,6 +140,8 @@ new #[Title('New Search')] class extends Component
             @error('uploadedFiles.*')
             <flux:callout class="my-2" variant="danger" icon="exclamation-triangle" heading="{{ $message }}" />
             @enderror
+
+            <flux:button type="submit" variant="primary" x-bind:disabled="uploading">Search</flux:button>
 
             <div x-cloak x-show="localFiles.length > 0" class="flex flex-row flex-wrap gap-2 items-end justify-between mt-4">
                 <div>
@@ -186,8 +195,6 @@ new #[Title('New Search')] class extends Component
                 </template>
             </ul>
         </div>
-
-        <flux:button type="submit" variant="primary" x-bind:disabled="uploading">Search</flux:button>
     </form>
 </div>
 
@@ -320,6 +327,8 @@ new #[Title('New Search')] class extends Component
             return new Promise((resolve, reject) => {
                 this.$wire.upload('uploadedFiles.' + index, file,
                     (uploadedFilename) => {
+                        // Pass name/path to info array
+                        this.$wire.addFileInfo(file.name, uploadedFilename);
                         this.localFiles[index].uploaded = true;
                         this.successCount++;
                         resolve("Upload successful");
