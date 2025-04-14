@@ -4,9 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class AudioFile extends Model
 {
@@ -45,11 +46,15 @@ class AudioFile extends Model
     }
 
     /**
+     * Return the files's parsed date formatted and in the user's timezone
+     */
+    public function getFormattedParsedDateAttribute(): string
+    {
+        return $this->parsed_date->setTimezone(Auth::user()->timezone)->toDayDateTimeString();
+    }
+
+    /**
      * Create a new AudioFile from an uploaded file
-     *
-     * @param UploadedFile $uploadedFile
-     * @param string $originalFilename
-     * @return static
      */
     public static function createFromUpload(
         int $searchId,
@@ -73,26 +78,23 @@ class AudioFile extends Model
 
     /**
      * Sanitize a filename
-     * @param string $filename
-     * @return string
      */
     protected static function sanitizeFilename(string $filename): string
     {
         $sanitized = preg_replace('/[^\w\-\.\s]/', '', $filename);
+
         return substr($sanitized, 0, 255);
     }
 
     /**
      * Parse the date from the filename
-     * @param string $filename
-     * @return Carbon|null
      */
-    protected static function parseDate(string $filename): Carbon | null
+    protected static function parseDate(string $filename): ?Carbon
     {
         // Strict regex that only matches the WSMC skimmer format
         $pattern = "/(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})/";
 
-        if (!preg_match($pattern, $filename, $matches)) {
+        if (! preg_match($pattern, $filename, $matches)) {
             // Return null
             return null;
         }
@@ -102,7 +104,8 @@ class AudioFile extends Model
             $timeString = str_replace('-', ':', $matches[2]); // Convert 14-25-13 to 14:25:13
 
             // Create Carbon instance with validation
-            $dateTime = Carbon::createFromFormat('Y-m-d H:i:s', "$dateString $timeString");
+            $dateTime = Carbon::createFromFormat('Y-m-d H:i:s', "$dateString $timeString", Auth::user()->timezone)
+                ->setTimezone('UTC');
 
             // Additional validation - ensure the date is reasonable
             $now = Carbon::now();
@@ -118,8 +121,8 @@ class AudioFile extends Model
         } catch (\Exception $e) {
             // Handle date parsing errors
             Log::info('New Search: filename date parsing issue', ['exception' => $e->getMessage()]);
+
             return null;
         }
     }
-
 }
