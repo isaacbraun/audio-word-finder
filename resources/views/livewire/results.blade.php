@@ -14,8 +14,6 @@ new class extends Component {
     public int $id;
     public Search $search;
     public string $query;
-    /** @var \App\Models\AudioFile[] $files */
-    public $files;
     public string $sort = 'query_count|desc';
     public string $activeTab = 'all';
 
@@ -27,7 +25,6 @@ new class extends Component {
         $this->authorize('view', $this->search);
 
         $this->query = $this->search->query;
-        $this->files = $this->search->files;
     }
 
     public function rendering(View $view): void
@@ -117,7 +114,7 @@ new class extends Component {
         <flux:callout class="my-8" inline color="{{ $this->status['color'] }}" icon="{{ $this->status['icon'] }}">
             @if ($search->status === SearchStatus::Processing)
             <flux:callout.heading class="justify-between">
-                Processing {{ count($files) }} {{ Str::plural('file', count($files)) }}
+                Processing {{ count($search->files) }} {{ Str::plural('file', count($search->files)) }}
                 <flux:icon.loading variant="micro" />
             </flux:callout.heading>
             @elseif ($search->status === SearchStatus::Completed && $search->query_total > 0)
@@ -147,12 +144,13 @@ new class extends Component {
         </flux:callout>
     </div>
 
+    @if ($search->status !== SearchStatus::Pending)
     <!-- File controls -->
     <div class="flex flex-row flex-wrap gap-2 justify-between items-end">
         <div>
             <flux:heading size="lg" level="2">Files</flux:heading>
             <flux:text>
-                {{ $search->status === SearchStatus::Completed ? 'Searched' : 'Searching' }} {{ count($files) }} {{ Str::plural('file', count($files)) }}
+                {{ $search->status === SearchStatus::Completed ? 'Searched' : 'Searching' }} {{ count($search->files) }} {{ Str::plural('file', count($search->files)) }}
             </flux:text>
         </div>
 
@@ -184,10 +182,11 @@ new class extends Component {
         @foreach ($this->filteredFiles as $file)
         <livewire:file-results :lazy="$loop->index > 10 ? 'on-load' : ''" :file="$file" wire:key="{{ $file->id }}" />
         @endforeach
-        @elseif ($search->status !== SearchStatus::Pending &&  $search->status !== SearchStatus::Processing)
+        @else
         <flux:subheading>No results found</flux:subheading>
         @endif
     </div>
+    @endif
 </div>
 
 @script
