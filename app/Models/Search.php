@@ -4,7 +4,7 @@ namespace App\Models;
 
 use App\Enums\SearchStatus;
 use App\Jobs\CreateReport;
-use App\Jobs\ProcessFile;
+use App\Jobs\UploadFiles;
 use App\Mail\SearchFinished;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -55,34 +55,31 @@ class Search extends Model
      *
 
      * @param  array  $searchData  Array containing user_id, query, and completion_email
-     * @param  array  $files  Array of [UploadedFile, originalFilename] pairs
+     * @param  array  $fileArray  Array of [name, path] pairs
+     * @param
      */
-    public static function createWithFiles(array $searchData, array $files): static
+    public static function createWithFiles(array $searchData, array $fileArray): int
     {
-        return DB::transaction(function () use ($searchData, $files) {
+        return DB::transaction(function () use ($searchData, $fileArray) {
             // Create the search entry
             $search = static::create([
                 'user_id' => $searchData['user_id'],
                 'query' => $searchData['query'],
-                'status' => SearchStatus::Processing,
                 'completion_email' => $searchData['completion_email'],
             ]);
+            //
+            // Get name and path of temporary files
+            $tempFiles = collect($fileArray)->map(function ($file) {
+                return [
+                    'name' => $file->getClientOriginalName(),
+                    'path' => $file->getRealPath(),
+                ];
+            });
 
-            // Process each file
-            $fileEntries = collect($files)->map(function ($file) use ($search) {
-                return AudioFile::createFromUpload(
-                    searchId: $search->id,
-                    uploadedFile: $file,
-                    originalFilename: $file->getClientOriginalName()
-                );
-            })->all();
+            // Upload Files and queue for processing
+            UploadFiles::dispatch($search, $tempFiles, Auth::user()->timezone);
 
-            // Dispatch processing jobs
-            foreach ($fileEntries as $fileEntry) {
-                ProcessFile::dispatch($search, $fileEntry);
-            }
-
-            return $search;
+            return $search->id;
         });
     }
 

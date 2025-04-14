@@ -56,14 +56,28 @@ new class extends Component {
     }
 
     #[Computed]
-    public function statusVariant(): string
+    public function status(): array
     {
         if ($this->search->status === SearchStatus::Completed) {
-            return 'success';
+            return [
+                'color' => 'green',
+                'icon' => 'check-circle',
+            ];
         } elseif ($this->search->status === SearchStatus::Processing) {
-            return 'secondary';
+            return [
+                'color' => 'cyan',
+                'icon' => '',
+            ];
+        } elseif ($this->search->status === SearchStatus::Pending) {
+            return [
+                'color' => 'yellow',
+                'icon' => 'arrow-up-circle',
+            ];
         } else {
-            return 'danger';
+            return [
+                'color' => 'red',
+                'icon' => 'exclamation-triangle',
+            ];
         }
     }
 
@@ -100,11 +114,11 @@ new class extends Component {
 
     <!-- Processing status/results -->
     <div @if ($search->status !== SearchStatus::Completed) wire:poll.2s @endif>
-        <flux:callout class="my-8" inline variant="{{ $this->statusVariant }}">
+        <flux:callout class="my-8" inline color="{{ $this->status['color'] }}" icon="{{ $this->status['icon'] }}">
             @if ($search->status === SearchStatus::Processing)
-            <flux:callout.heading>
+            <flux:callout.heading class="justify-between">
                 Processing {{ count($files) }} {{ Str::plural('file', count($files)) }}
-                <flux:icon.loading variant="mini" />
+                <flux:icon.loading variant="micro" />
             </flux:callout.heading>
             @elseif ($search->status === SearchStatus::Completed && $search->query_total > 0)
             <flux:callout.heading>
@@ -121,6 +135,11 @@ new class extends Component {
             <flux:callout.heading>
                 Processing Completed
                 <flux:text>No matches found</flux:text>
+            </flux:callout.heading>
+            @elseif ($search->status === SearchStatus::Pending)
+            <flux:callout.heading class="justify-between">
+                Uploading Files
+                <flux:icon.loading variant="micro" />
             </flux:callout.heading>
             @else
             <flux:callout.heading>Processing failed</flux:callout.heading>
@@ -165,7 +184,7 @@ new class extends Component {
         @foreach ($this->filteredFiles as $file)
         <livewire:file-results :lazy="$loop->index > 10 ? 'on-load' : ''" :file="$file" wire:key="{{ $file->id }}" />
         @endforeach
-        @else
+        @elseif ($search->status !== SearchStatus::Pending &&  $search->status !== SearchStatus::Processing)
         <flux:subheading>No results found</flux:subheading>
         @endif
     </div>
