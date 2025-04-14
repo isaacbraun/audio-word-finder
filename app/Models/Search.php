@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
+use App\Enums\SearchStatus;
+use App\Jobs\CreateReport;
+use App\Jobs\ProcessFile;
+use App\Mail\SearchFinished;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Mail\SearchFinished;
-use App\Enums\SearchStatus;
-use App\Jobs\ProcessFile;
-use App\Jobs\CreateReport;
+use Illuminate\Support\Facades\Mail;
 
 class Search extends Model
 {
@@ -42,12 +43,19 @@ class Search extends Model
     }
 
     /**
+     * Return the search's creation date formatted and in the user's timezone
+     */
+    public function getFormattedCreatedAtAttribute(): string
+    {
+        return $this->created_at->setTimezone(Auth::user()->timezone)->toDayDateTimeString();
+    }
+
+    /**
      * Create a new search with associated files
      *
 
-     * @param array $searchData Array containing user_id, query, and completion_email
-     * @param array $files Array of [UploadedFile, originalFilename] pairs
-     * @return static
+     * @param  array  $searchData  Array containing user_id, query, and completion_email
+     * @param  array  $files  Array of [UploadedFile, originalFilename] pairs
      */
     public static function createWithFiles(array $searchData, array $files): static
     {

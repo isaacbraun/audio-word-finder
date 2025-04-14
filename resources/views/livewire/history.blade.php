@@ -79,7 +79,7 @@ new #[Title('History')] class extends Component {
                     </flux:button>
                 </flux:table.cell>
                 <flux:table.cell>{{ $search->query_total ? $search->query_total : '0' }}</flux:table.cell>
-                <flux:table.cell>{{ $search->created_at->toDayDateTimeString() }}</flux:table.cell>
+                <flux:table.cell>{{ $search->formatted_created_at }}</flux:table.cell>
 
                 <flux:table.cell>
                     <flux:dropdown position="bottom" align="start">

@@ -69,7 +69,7 @@ new class extends Component {
                 <flux:heading>
                     <span class="break-all mr-1">
                         @if ($file->parsed_date)
-                        {{ $file->parsed_date->toDayDateTimeString() }}
+                        {{ $file->formatted_parsed_date }}
                         @else
                         {{ $file->audio_filename }}
                         @endif
