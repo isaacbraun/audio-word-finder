@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\AudioFile;
 use App\Models\Search;
+use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Http;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 class ProcessFile implements ShouldQueue
 {
-    use Queueable;
+    use Batchable, Queueable;
 
     /**
      * Create a new job instance.
@@ -28,6 +29,11 @@ class ProcessFile implements ShouldQueue
      */
     public function handle(): void
     {
+        if ($this->batch()->cancelled()) {
+            // Determine if the batch has been cancelled...
+            return;
+        }
+
         // If audio file doesn't exist
         if (!$this->file->audio_path && !Storage::exists($this->file->audio_path)) {
             throw new \Exception('Audio file does not exist');
@@ -69,10 +75,6 @@ class ProcessFile implements ShouldQueue
         // Save DB changes
         $this->search->save();
         $this->file->save();
-
-        $this->search->fresh();
-        // Check search status
-        $this->search->whenFinished();
     }
 
     /**

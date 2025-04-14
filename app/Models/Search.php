@@ -4,13 +4,17 @@ namespace App\Models;
 
 use App\Enums\SearchStatus;
 use App\Jobs\CreateReport;
-use App\Jobs\UploadFiles;
+use App\Jobs\UploadFile;
 use App\Mail\SearchFinished;
+use Exception;
+use Illuminate\Bus\Batch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class Search extends Model
@@ -53,49 +57,67 @@ class Search extends Model
     /**
      * Create a new search with associated files
      *
-
      * @param  array  $searchData  Array containing user_id, query, and completion_email
      * @param  array  $fileArray  Array of [name, path] pairs
-     * @param
      */
     public static function createWithFiles(array $searchData, array $fileArray): int
     {
-        return DB::transaction(function () use ($searchData, $fileArray) {
-            // Create the search entry
-            $search = static::create([
-                'user_id' => $searchData['user_id'],
-                'query' => $searchData['query'],
-                'completion_email' => $searchData['completion_email'],
-            ]);
-            //
-            // Get name and path of temporary files
-            $tempFiles = collect($fileArray)->map(function ($file) {
-                return [
-                    'name' => $file->getClientOriginalName(),
-                    'path' => $file->getRealPath(),
-                ];
-            });
-
-            // Upload Files and queue for processing
-            UploadFiles::dispatch($search, $tempFiles, Auth::user()->timezone);
-
-            return $search->id;
-        });
-    }
-
-    /**
-     * Check if all the files have bee processed.
-     * If so, update Search status and email user
-     */
-    public function whenFinished(): void
-    {
-        $filesCount = static::files()->count();
-        $processedFilesCount = static::files()->where('transcription_path', '!=', null)->count();
-
-        // Create CSV if all files have been processed
-        if ($processedFilesCount === $filesCount) {
-            CreateReport::dispatch($this);
+        if (empty($fileArray)) {
+            throw new Exception('No files provided');
         }
+
+        return DB::transaction(function () use ($searchData, $fileArray) {
+            try {
+                // Create the search entry
+                $search = static::create([
+                    'user_id' => $searchData['user_id'],
+                    'query' => $searchData['query'],
+                    'completion_email' => $searchData['completion_email'],
+                ]);
+
+                $jobs = [];
+                // Create file upload queue jobs
+                foreach ($fileArray as $file) {
+                    $jobs[] = new UploadFile($search, $file, Auth::user()->timezone ?? 'UTC');
+                }
+
+                Bus::batch($jobs)->allowFailures()
+                    ->progress(function () use ($search, $fileArray) {
+                        if ($search->status !== SearchStatus::Pending) {
+                            return; // Skip if we've already moved past uploading
+                        }
+
+                        $allUploaded = $search->files()->count() === count($fileArray);
+
+                        if ($allUploaded) {
+                            $search->status = SearchStatus::Processing;
+                            $search->save();
+                        }
+                    })
+                    ->finally(function (Batch $batch) use ($search) {
+                        if ($batch->hasFailures()) {
+                            $search->update(['status' => SearchStatus::Failed]);
+
+                            return;
+                        }
+
+                        if ($search->query_total > 0) {
+                            CreateReport::dispatch($search);
+                        } else {
+                            $search->completeAndEmail();
+                        }
+                    })
+                    ->dispatch();
+
+                return $search->id;
+            } catch (Exception $e) {
+                Log::error('Search creation failed', [
+                    'error' => $e->getMessage(),
+                    'search_data' => $searchData,
+                ]);
+                throw $e;
+            }
+        });
     }
 
     /**
