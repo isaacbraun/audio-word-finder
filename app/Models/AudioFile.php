@@ -50,7 +50,7 @@ class AudioFile extends Model
      */
     public function getFormattedParsedDateAttribute(): string
     {
-        return $this->parsed_date->setTimezone(Auth::user()->timezone)->toDayDateTimeString();
+        return $this->parsed_date->setTimezone(Auth::user()->timezone ?? 'UTC')->toDayDateTimeString();
     }
 
     /**
@@ -104,7 +104,7 @@ class AudioFile extends Model
             $timeString = str_replace('-', ':', $matches[2]); // Convert 14-25-13 to 14:25:13
 
             // Create Carbon instance with validation
-            $dateTime = Carbon::createFromFormat('Y-m-d H:i:s', "$dateString $timeString", Auth::user()->timezone)
+            $dateTime = Carbon::createFromFormat('Y-m-d H:i:s', "$dateString $timeString", Auth::user()->timezone ?? 'UTC')
                 ->setTimezone('UTC');
 
             // Additional validation - ensure the date is reasonable

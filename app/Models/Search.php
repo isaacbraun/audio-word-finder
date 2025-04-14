@@ -47,7 +47,7 @@ class Search extends Model
      */
     public function getFormattedCreatedAtAttribute(): string
     {
-        return $this->created_at->setTimezone(Auth::user()->timezone)->toDayDateTimeString();
+        return $this->created_at->setTimezone(Auth::user()->timezone ?? 'UTC')->toDayDateTimeString();
     }
 
     /**
