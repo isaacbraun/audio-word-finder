@@ -145,16 +145,7 @@ new #[Title('New Search')] class extends Component
 
             <div x-cloak x-show="localFiles.length > 0" class="flex flex-row flex-wrap gap-2 items-end justify-between mt-4">
                 <div>
-                    <div class="flex flex-row gap-2 items-center">
-                        <flux:heading>Selected <span x-text="localFiles.length"></span><span x-text="localFiles.length === 1 ? ' File' : ' Files'"></span></flux:heading>
-                        <template x-if="!uploading">
-                            <flux:icon.check variant="mini" class="text-accent" />
-                        </template>
-                        <template x-if="uploading">
-                            <flux:icon.loading variant="micro" />
-                        </template>
-                    </div>
-                    <flux:subheading>Uploaded: <span x-text="successCount"></span><span x-text="successCount === 1 ? ' File' : ' Files'"></span></flux:subheading>
+                    <flux:heading>Uploading: <span x-text="successCount"></span> / <span x-text="localFiles.length"></span> <span x-text="localFiles.length === 1 ? ' File' : ' Files'"></span></flux:heading>
                     <flux:subheading class="text-red-400" x-show="failureCount > 0">Failed: <span x-text="failureCount"></span><span x-text="failureCount === 1 ? ' File' : ' Files'"></span></flux:subheading>
                 </div>
 
