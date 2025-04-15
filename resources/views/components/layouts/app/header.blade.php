@@ -37,6 +37,13 @@
 
         <flux:spacer />
 
+        <!-- Site Theme Control -->
+        <flux:radio.group x-data variant="segmented" x-model="$flux.appearance" size="sm" class="mr-2 max-lg:hidden">
+            <flux:radio value="light" icon="sun"></flux:radio>
+            <flux:radio value="dark" icon="moon"></flux:radio>
+            <flux:radio value="system" icon="computer-desktop"></flux:radio>
+        </flux:radio.group>
+
         <!-- Desktop User Menu -->
         <flux:dropdown position="top" align="end">
             <flux:profile
