@@ -177,7 +177,11 @@ new class extends Component {
         </div>
     </div>
     <!-- File list -->
-    <div class="mt-4 flex flex-col gap-2">
+    <div wire:loading.delay.shortest wire:target="activeTab, sort" class="mt-4">
+        <flux:icon.loading />
+    </div>
+
+    <div wire:loading.remove.delay.shortest wire:target="activeTab, sort" class="mt-4 flex flex-col gap-2">
         @if ($this->filteredFiles->isNotEmpty())
         @foreach ($this->filteredFiles as $file)
         <livewire:file-results :lazy="$loop->index > 10 ? 'on-load' : ''" :file="$file" wire:key="{{ $file->id }}" />
