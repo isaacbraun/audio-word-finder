@@ -37,7 +37,7 @@ class ProcessFile implements ShouldQueue
         }
 
         // If audio file doesn't exist
-        if (! $this->file->audio_path && ! Storage::exists($this->file->audio_path)) {
+        if (!$this->file->audio_path && !Storage::exists($this->file->audio_path)) {
             throw new \Exception('Audio file does not exist');
         }
 
@@ -53,7 +53,7 @@ class ProcessFile implements ShouldQueue
         }
 
         // Check if the matchCount key exists
-        if (! isset($matches_json['matchCount'])) {
+        if (!isset($matches_json['matchCount'])) {
             throw new \Exception('matchCount not found in JSON response');
         }
 
