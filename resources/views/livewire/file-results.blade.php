@@ -1,16 +1,17 @@
 <?php
 
-use App\Jobs\CreateReport;
 use App\Jobs\ProcessFile;
 use App\Models\AudioFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Support\Arr;
 use Livewire\Attributes\Computed;
 use Livewire\Volt\Component;
 
-new class extends Component {
+new class extends Component
+{
     public AudioFile $file;
+
     public $failed = false;
 
     #[Computed()]
@@ -34,7 +35,7 @@ new class extends Component {
     #[Computed()]
     public function copyTitle(): string
     {
-        return "Copy transcription of " . $this->file->audio_filename . " to clipboard";
+        return 'Copy transcription of ' . $this->file->audio_filename . ' to clipboard';
     }
 
     public function retry()
@@ -49,7 +50,7 @@ new class extends Component {
 
     public function copyTranscription(): void
     {
-        $fullText = Arr::get($this->transcription(), "fullText");
+        $fullText = Arr::get($this->transcription(), 'fullText');
         $this->dispatch('copy-to-clipboard', transcription: $fullText);
     }
 
@@ -88,7 +89,7 @@ new class extends Component {
                 @endif
             </div>
 
-            @if (!$this->transcription && !this->failed)
+            @if (!$this->transcription && !$this->failed)
             <flux:icon.loading variant="micro" />
             @elseif (Arr::has($this->transcription, "fullText"))
             <flux:button
