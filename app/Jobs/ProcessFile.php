@@ -2,15 +2,16 @@
 
 namespace App\Jobs;
 
+use App\Enums\SearchStatus;
 use App\Models\AudioFile;
 use App\Models\Search;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Log;
 
 class ProcessFile implements ShouldQueue
 {
@@ -21,7 +22,8 @@ class ProcessFile implements ShouldQueue
      */
     public function __construct(
         public Search $search,
-        public AudioFile $file
+        public AudioFile $file,
+        public bool $retry = false,
     ) {}
 
     /**
@@ -35,7 +37,7 @@ class ProcessFile implements ShouldQueue
         }
 
         // If audio file doesn't exist
-        if (!$this->file->audio_path && !Storage::exists($this->file->audio_path)) {
+        if (! $this->file->audio_path && ! Storage::exists($this->file->audio_path)) {
             throw new \Exception('Audio file does not exist');
         }
 
@@ -51,15 +53,13 @@ class ProcessFile implements ShouldQueue
         }
 
         // Check if the matchCount key exists
-        if (!isset($matches_json['matchCount'])) {
+        if (! isset($matches_json['matchCount'])) {
             throw new \Exception('matchCount not found in JSON response');
         }
 
         // Store search response to file
         $transcription_path = 'transcriptions/' . Str::uuid()->toString() . '.json';
         Storage::put($transcription_path, json_encode($matches_json));
-
-        // TODO: create CSV of filename/parsed date and match count
 
         // Update File Model
         $this->file->query_count = $matches_json['matchCount'];
@@ -75,13 +75,21 @@ class ProcessFile implements ShouldQueue
         // Save DB changes
         $this->search->save();
         $this->file->save();
+
+        // If retrying, dispatch Report creation
+        if ($this->retry) {
+            if ($this->search->query_total > 0) {
+                CreateReport::dispatch($this->search);
+            } else {
+                $this->search->status = SearchStatus::Completed;
+            }
+        }
     }
 
     /**
      * The job failed to process.
      *
-     * @param \Exception $exception
-     *
+     * @param  \Exception  $exception
      * @return void
      */
     public function failed(\Throwable $exception)
@@ -89,9 +97,6 @@ class ProcessFile implements ShouldQueue
         // Set transcription_path to 'failed' as pseudo status
         $this->file->transcription_path = 'failed';
         $this->file->save();
-
-        // Check Search status
-        $this->search->whenFinished();
 
         if (app()->bound('sentry')) {
             app('sentry')->captureException($exception);
@@ -103,7 +108,7 @@ class ProcessFile implements ShouldQueue
     /**
      * Transcribe audio file using OpenAI's Whisper API.
      *
-     * @param string $audioFilePath Path to the audio file
+     * @param  string  $audioFilePath  Path to the audio file
      * @return string The transcribed text
      */
     protected function transcribeWithWhisper(string $audio_path): string
@@ -124,7 +129,7 @@ class ProcessFile implements ShouldQueue
                 ->post('https://api.openai.com/v1/audio/transcriptions', [
                     'model' => 'whisper-1',
                     'language' => 'en',
-                    'response_format' => 'json'
+                    'response_format' => 'json',
                 ]);
 
             // Close the stream
@@ -137,6 +142,7 @@ class ProcessFile implements ShouldQueue
             }
 
             $result = $response->json();
+
             return $result['text'] ?? '';
         } catch (\Exception $e) {
             // Make sure we clean up even if there's an error
@@ -150,8 +156,8 @@ class ProcessFile implements ShouldQueue
     /**
      * Find all occurrences of a search string in text and segment the text.
      *
-     * @param string $text The text to search within
-     * @param string $searchString The string to search for
+     * @param  string  $text  The text to search within
+     * @param  string  $searchString  The string to search for
      * @return array The result with match count and segments
      */
     protected function findAndSegment(string $text, string $searchString): array
@@ -165,8 +171,9 @@ class ProcessFile implements ShouldQueue
         if (empty($searchString) || empty($text)) {
             $result['segments'][] = [
                 'match' => false,
-                'text' => $text
+                'text' => $text,
             ];
+
             return $result;
         }
 
@@ -184,7 +191,7 @@ class ProcessFile implements ShouldQueue
                 if ($currentPosition < $textLen) {
                     $result['segments'][] = [
                         'match' => false,
-                        'text' => substr($text, $currentPosition)
+                        'text' => substr($text, $currentPosition),
                     ];
                 }
                 break;
@@ -194,14 +201,14 @@ class ProcessFile implements ShouldQueue
             if ($nextMatchPosition > $currentPosition) {
                 $result['segments'][] = [
                     'match' => false,
-                    'text' => substr($text, $currentPosition, $nextMatchPosition - $currentPosition)
+                    'text' => substr($text, $currentPosition, $nextMatchPosition - $currentPosition),
                 ];
             }
 
             // Add the matching segment
             $result['segments'][] = [
                 'match' => true,
-                'text' => substr($text, $nextMatchPosition, $searchLen)
+                'text' => substr($text, $nextMatchPosition, $searchLen),
             ];
 
             // Increment the match count
