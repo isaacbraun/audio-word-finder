@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\CreateReport;
 use App\Jobs\ProcessFile;
 use App\Models\AudioFile;
 use Illuminate\Support\Facades\Storage;
@@ -56,7 +57,7 @@ new class extends Component {
     {
         return <<<'BLADE'
         <div>
-            <flux:card class="h-28 bg-zinc-100/50" />
+            <flux:card class="h-20 bg-zinc-100/50" />
         </div>
         BLADE;
     }
@@ -87,7 +88,7 @@ new class extends Component {
                 @endif
             </div>
 
-            @if (!$this->transcription)
+            @if (!$this->transcription && !this->failed)
             <flux:icon.loading variant="micro" />
             @elseif (Arr::has($this->transcription, "fullText"))
             <flux:button

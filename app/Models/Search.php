@@ -95,11 +95,10 @@ class Search extends Model
                         }
                     })
                     ->finally(function (Batch $batch) use ($search) {
-                        if ($batch->hasFailures()) {
-                            $search->update(['status' => SearchStatus::Failed]);
-
-                            return;
-                        }
+                        // if ($batch->hasFailures()) {
+                        //     $search->update(['status' => SearchStatus::Failed]);
+                        //     return;
+                        // }
 
                         if ($search->query_total > 0) {
                             CreateReport::dispatch($search);

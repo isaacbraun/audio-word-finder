@@ -78,7 +78,13 @@ new #[Title('History')] class extends Component {
                         {{ $search->query }}
                     </flux:button>
                 </flux:table.cell>
+
+                @if ($search->status === \App\Enums\SearchStatus::Completed)
                 <flux:table.cell>{{ $search->query_total ? $search->query_total : '0' }}</flux:table.cell>
+                @else
+                <flux:table.cell>Processing</flux:table.cell>
+                @endif
+
                 <flux:table.cell>{{ $search->formatted_created_at }}</flux:table.cell>
 
                 <flux:table.cell>
