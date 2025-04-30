@@ -12,6 +12,7 @@ use Livewire\WithFileUploads;
 new #[Title('New Search')] class extends Component
 {
     use WithFileUploads;
+    // TODO: clearing files doesn't cancel submit button loading
 
     #[Validate('required')]
     public $query = '';

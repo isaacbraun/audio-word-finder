@@ -38,7 +38,13 @@ new class extends Component {
 
     public function updatedSortString(string $sortString): void
     {
+        $this->resetPage();
         [$this->sortBy, $this->sortDirection] = explode('|', $sortString);
+    }
+
+    public function updatedActiveTab(): void
+    {
+        $this->resetPage();
     }
 
     #[Computed]
@@ -55,7 +61,7 @@ new class extends Component {
         return $this->search->files()
             ->where($whereClause)
             ->orderBy($this->sortBy, $this->sortDirection)
-            ->paginate(10);
+            ->paginate(20);
     }
 
     #[Computed]

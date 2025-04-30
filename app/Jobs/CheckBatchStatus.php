@@ -45,8 +45,9 @@ class CheckBatchStatus implements ShouldQueue
         self::dispatch($this->batchId, $this->search, $this->fileCount)->delay(2);
     }
 
-    public function finishedHanlder(): void
+    public function finishedHandler(): void
     {
+        // TODO: this sometimes doesn't get called??
         Log::info('Batch Check Finished');
         // If query found: create report (which calls completeAndEmail())
         if ($this->search->query_total > 0) {
@@ -70,7 +71,7 @@ class CheckBatchStatus implements ShouldQueue
         }
 
         if ($batch->finished()) {
-            $this->finishedHanlder();
+            $this->finishedHandler();
         } else {
             $this->progressHandler();
         }
