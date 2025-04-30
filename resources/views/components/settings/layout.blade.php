@@ -4,7 +4,7 @@
             <flux:navlist.item :href="route('settings.profile')" wire:navigate>{{ __('Profile') }}</flux:navlist.item>
             <flux:navlist.item :href="route('settings.password')" wire:navigate>{{ __('Password') }}</flux:navlist.item>
             <flux:navlist.item :href="route('settings.appearance')" wire:navigate>{{ __('Appearance') }}</flux:navlist.item>
-            @if (Auth::user()->subscribed())
+            @if (auth()->user()->subscribed())
             <flux:navlist.item :href="route('billing')">{{ __('Billing') }}</flux:navlist.item>
             @else
             <flux:navlist.item :href="route('subscribe-basic')">{{ __('Upgrade') }}</flux:navlist.item>

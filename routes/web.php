@@ -9,9 +9,7 @@ use Livewire\Volt\Volt;
 /**
  * Home - Landing Page
  */
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+Volt::route('/', 'home')->name('home');
 
 /**
  * Stripe: Webhooks
