@@ -73,32 +73,7 @@ class Search extends Model
                 'completion_email' => $searchData['completion_email'],
             ]);
 
-            $jobs = [];
-            foreach ($fileArray as $file) {
-                $jobs[] = new UploadFile($search, $file, Auth::user()->timezone ?? 'UTC');
-            }
-
-            Bus::batch($jobs)->allowFailures()
-                ->progress(function () use ($search, $fileArray) {
-                    if ($search->status !== SearchStatus::Pending) {
-                        return; // Skip if we've already moved past uploading
-                    }
-
-                    $allUploaded = $search->files()->count() === count($fileArray);
-
-                    if ($allUploaded) {
-                        $search->status = SearchStatus::Processing;
-                        $search->save();
-                    }
-                })
-                ->finally(function () use ($search) {
-                    if ($search->query_total > 0) {
-                        CreateReport::dispatch($search);
-                    } else {
-                        $search->completeAndEmail();
-                    }
-                })
-                ->dispatch();
+            BatchUpload::dispatch($search, $fileArray, Auth::user()->timezone ?? 'UTC');
 
             return $search->id;
         } catch (Exception $e) {
