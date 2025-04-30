@@ -42,7 +42,7 @@ class CheckBatchStatus implements ShouldQueue
         }
 
         // Re-run this job after a delay
-        self::dispatch($this->batchId, $this->search, $this->fileCount)->delay(2 * $this->fileCount);
+        self::dispatch($this->batchId, $this->search, $this->fileCount)->delay(2);
     }
 
     public function finishedHanlder(): void
@@ -63,7 +63,6 @@ class CheckBatchStatus implements ShouldQueue
      */
     public function handle()
     {
-        Log::info('Batch Check Running');
         $batch = Bus::findBatch($this->batchId);
 
         if (! $batch) {
