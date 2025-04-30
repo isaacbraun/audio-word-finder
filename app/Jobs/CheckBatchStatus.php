@@ -42,11 +42,12 @@ class CheckBatchStatus implements ShouldQueue
         }
 
         // Re-run this job after a delay
-        self::dispatch($this->batchId, $this->search, $this->fileCount);
+        self::dispatch($this->batchId, $this->search, $this->fileCount)->delay(2 * $this->fileCount);
     }
 
     public function finishedHanlder(): void
     {
+        Log::info('Batch Check Finished');
         // If query found: create report (which calls completeAndEmail())
         if ($this->search->query_total > 0) {
             CreateReport::dispatch($this->search);
