@@ -22,11 +22,6 @@ new #[Title('New Search')] class extends Component
     #[Validate(
         [
             'uploadedFiles' => 'required',
-            'uploadedFiles.*' => [
-                'required',
-                'mimetypes:audio/wav,audio/x-wav,audio/mpeg,audio/mp4',
-                'max:25600',
-            ],
         ],
         attribute: [
             'uploadedFiles.*' => 'file',
@@ -143,7 +138,7 @@ new #[Title('New Search')] class extends Component
 
             <flux:button type="submit" variant="primary" x-bind:disabled="uploading">Search</flux:button>
 
-            <div x-cloak x-show="localFiles.length > 0" class="flex flex-row flex-wrap gap-2 items-end justify-between mt-4">
+            <div x-cloak x-show="localFiles.length > 0" class="flex flex-row flex-wrap gap-2 items-end justify-between mt-8">
                 <div>
                     <flux:heading>Uploading: <span x-text="successCount"></span> / <span x-text="localFiles.length"></span> <span x-text="localFiles.length === 1 ? ' File' : ' Files'"></span></flux:heading>
                     <flux:subheading class="text-red-400" x-show="failureCount > 0">Failed: <span x-text="failureCount"></span><span x-text="failureCount === 1 ? ' File' : ' Files'"></span></flux:subheading>
