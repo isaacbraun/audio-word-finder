@@ -17,12 +17,12 @@
         @auth
         <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
         @else
-        <a href="{{ route('home') }}" class="md:hidden" wire:navigate.hover>
+        <a href="{{ route('home') }}" class="md:hidden flex aspect-square size-8 items-center justify-center rounded-md bg-accent-content text-accent-foreground" wire:navigate.hover>
             <x-app-logo-icon />
         </a>
         @endauth
 
-        <a href="{{ route('home') }}" class="hidden md:flex ml-2 mr-5 items-center space-x-2 lg:ml-0" wire:navigate.hover>
+        <a href="{{ route('home') }}" class="hidden md:flex ml-2 mr-5 items-center space-x-2 lg:ml-0" title="Home" wire:navigate.hover>
             <x-app-logo />
         </a>
 
