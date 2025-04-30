@@ -53,15 +53,6 @@ new class extends Component
         $fullText = Arr::get($this->transcription(), 'fullText');
         $this->dispatch('copy-to-clipboard', transcription: $fullText);
     }
-
-    public function placeholder()
-    {
-        return <<<'BLADE'
-        <div>
-            <flux:card class="h-20 bg-zinc-100/50" />
-        </div>
-        BLADE;
-    }
 }; ?>
 
 <div @if (!$this->transcription) wire:poll.2s @endif>

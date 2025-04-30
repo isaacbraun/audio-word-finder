@@ -14,8 +14,12 @@ new class extends Component {
     public int $id;
     public Search $search;
     public string $query;
-    public string $sort = 'query_count|desc';
     public string $activeTab = 'all';
+    public string $sortBy = 'query_count'; // Default sort column
+    public string $sortDirection = 'desc'; // Default sort direction
+    public string $sortString = 'query_count|desc';
+
+    // TODO Cancel job? delete should cancel as well
 
     public function mount($id)
     {
@@ -32,6 +36,11 @@ new class extends Component {
         $view->title('Results for "' . $this->query . '"');
     }
 
+    public function updatedSortString(string $sortString): void
+    {
+        [$this->sortBy, $this->sortDirection] = explode('|', $sortString);
+    }
+
     #[Computed]
     public function filteredFiles()
     {
@@ -43,13 +52,10 @@ new class extends Component {
             $whereClause[] = ['query_count', '=', 0];
         }
 
-        // Parse sort column and direction
-        [$sortBy, $sortDirection] = explode('|', $this->sort);
-
         return $this->search->files()
             ->where($whereClause)
-            ->orderBy($sortBy, $sortDirection)
-            ->get();
+            ->orderBy($this->sortBy, $this->sortDirection)
+            ->paginate(10);
     }
 
     #[Computed]
@@ -128,7 +134,7 @@ new class extends Component {
                 <flux:button wire:click="downloadReport" icon="arrow-down-tray">Export Matches</flux:button>
             </x-slot>
             @endif
-            @elseif ($search->status === SearchStatus::Completed && $search->query_total === 0)
+            @elseif ($search->status === SearchStatus::Completed && !$search->query_total > 0)
             <flux:callout.heading>
                 Processing Completed
                 <flux:text>No matches found</flux:text>
@@ -161,7 +167,7 @@ new class extends Component {
                 <flux:tab name="misses">Misses</flux:tab>
             </flux:tabs>
 
-            <flux:select variant="listbox" class="sm:max-w-fit" wire:model.live="sort">
+            <flux:select variant="listbox" class="max-w-fit" wire:model.live="sortString">
                 <x-slot name="trigger">
                     <flux:select.button>
                         <flux:icon.arrows-up-down variant="micro" class="mr-2 text-zinc-400" />
@@ -184,12 +190,21 @@ new class extends Component {
     <div wire:loading.remove.delay.shortest wire:target="activeTab, sort" class="mt-4 flex flex-col gap-2">
         @if ($this->filteredFiles->isNotEmpty())
         @foreach ($this->filteredFiles as $file)
-        <livewire:file-results :lazy="$loop->index > 10 ? 'on-load' : ''" :file="$file" wire:key="{{ $file->id }}" />
+        <livewire:file-results :file="$file" wire:key="{{ $file->id }}" />
         @endforeach
+
+        <flux:pagination :paginator="$this->filteredFiles" />
         @else
         <flux:subheading>No results found</flux:subheading>
         @endif
     </div>
+    @else
+    <flux:heading>This may take a few minutes</flux:heading>
+    <flux:text>Feel free to close the page and return later.
+        @if ($this->search->completion_email)
+        <span>You will recieve an email when processing is completed.
+        @endif
+    </flux:text>
     @endif
 </div>
 
