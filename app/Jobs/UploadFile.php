@@ -59,12 +59,9 @@ class UploadFile implements ShouldQueue
 
     public function updateStatus(): void
     {
-        if ($this->batch()->processedJobs() + 1 === $this->fileCount) {
-            Log::info('All files uploaded');
+        if ($this->batch()->processedJobs() + 1 >= $this->fileCount) {
             $this->search->status = SearchStatus::Processing;
             $this->search->save();
-        } else {
-            Log::info('Uploaded: ' . $this->batch()->processedJobs() + 1 . ' Files: ' . $this->fileCount);
         }
     }
 
