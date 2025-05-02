@@ -38,7 +38,7 @@ class ProcessFile implements ShouldQueue
         }
 
         // If audio file doesn't exist
-        if (! $this->file->audio_path && ! Storage::exists($this->file->audio_path)) {
+        if (! $this->file->audio_path || ! Storage::exists($this->file->audio_path)) {
             throw new \Exception('Audio file does not exist');
         }
 
