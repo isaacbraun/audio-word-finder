@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Log;
 
 class BatchUpload implements ShouldQueue
 {
@@ -28,13 +29,18 @@ class BatchUpload implements ShouldQueue
     {
         $fileCount = count($this->fileArray);
 
-        $jobs = [];
-        foreach ($this->fileArray as $file) {
-            $jobs[] = new UploadFile($this->search, $file, $this->timezone, $fileCount);
+        $firstJob = new UploadFile($this->search, $this->fileArray[0], $this->timezone, $fileCount);
+
+        $batch = Bus::batch($firstJob)
+            ->name('search-'.$this->search->id)
+            ->allowFailures()
+            ->catch(fn ($e) => Log::error('Batch failed', ['search' => $this->search->id, 'ex' => $e]))
+            ->finally(fn () => Log::info('Batch finished', ['search' => $this->search->id]));
+
+        foreach (array_slice($this->fileArray, 1) as $file) {
+            $batch->add(new UploadFile($this->search, $file, $this->timezone, $fileCount));
         }
 
-        Bus::batch($jobs)
-            ->allowFailures()
-            ->dispatch();
+        $batch->dispatch();
     }
 }
