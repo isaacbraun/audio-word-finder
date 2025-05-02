@@ -24,7 +24,9 @@ class BatchUpload implements ShouldQueue
     ) {}
 
     /**
-     * Execute the job.
+     * Dispatches a batch of file upload jobs for asynchronous processing.
+     *
+     * Creates and queues an `UploadFile` job for each file in the provided array, passing the associated search model, file, timezone, and total file count. The jobs are dispatched as a batch that allows individual job failures without stopping the entire batch.
      */
     public function handle(): void
     {

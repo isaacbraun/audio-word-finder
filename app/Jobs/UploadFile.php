@@ -20,7 +20,12 @@ class UploadFile implements ShouldQueue
     public $maxFileSize = 25 * 1024 * 1024; // 25MB
 
     /**
-     * Create a new job instance.
+     * Initializes a new UploadFile job with the given search, file data, timezone, and total file count.
+     *
+     * @param Search $search The Search model associated with the upload.
+     * @param array $file The uploaded file data.
+     * @param string $timezone The timezone for processing the file.
+     * @param int $fileCount The total number of files in the batch.
      */
     public function __construct(
         protected Search $search,
@@ -30,7 +35,9 @@ class UploadFile implements ShouldQueue
     ) {}
 
     /**
-     * Execute the job.
+     * Handles the upload and initial processing of an audio file in a queued batch job.
+     *
+     * Validates the uploaded file, moves it to permanent storage, creates a database record, queues further processing, and updates the associated search status.
      */
     public function handle(): void
     {
@@ -57,6 +64,12 @@ class UploadFile implements ShouldQueue
         }
     }
 
+    /**
+     * Updates the status of the associated Search model based on the number of processed files.
+     *
+     * If all files in the batch have been uploaded, sets the Search status to Processing and saves the model.
+     * Otherwise, logs the current upload progress.
+     */
     public function updateStatus(): void
     {
         if ($this->batch()->processedJobs() + 1 >= $this->fileCount) {
@@ -97,6 +110,11 @@ class UploadFile implements ShouldQueue
         }
     }
 
+    /**
+     * Creates an audio file record from the uploaded file and adds a processing job to the batch queue.
+     *
+     * @param string $path The storage path of the uploaded audio file.
+     */
     public function createAndQueue($path): void
     {
         // Create the audio file record
