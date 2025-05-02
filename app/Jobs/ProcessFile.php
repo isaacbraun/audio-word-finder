@@ -18,7 +18,12 @@ class ProcessFile implements ShouldQueue
     use Batchable, Queueable;
 
     /**
-     * Create a new job instance.
+     * Initializes a new ProcessFile job for processing an audio file within a search batch.
+     *
+     * @param Search $search The search operation associated with this job.
+     * @param AudioFile $file The audio file to be processed.
+     * @param int $fileCount Total number of files to process in the batch.
+     * @param bool $retry Indicates if this job is a retry attempt.
      */
     public function __construct(
         public Search $search,
@@ -27,8 +32,10 @@ class ProcessFile implements ShouldQueue
         public bool $retry = false,
     ) {}
 
-    /**
-     * Execute the job.
+    /****
+     * Processes an audio file by transcribing it, searching for query matches, updating related models, and managing batch job progress.
+     *
+     * Throws an exception if the audio file does not exist or if the transcription or match data is invalid. When all files in the batch are processed, dispatches a report creation job or completes the search based on match results.
      */
     public function handle(): void
     {
