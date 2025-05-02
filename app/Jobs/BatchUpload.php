@@ -2,11 +2,13 @@
 
 namespace App\Jobs;
 
+use App\Enums\SearchStatus;
 use App\Models\Search;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Log;
 
 class BatchUpload implements ShouldQueue
 {
@@ -28,15 +30,22 @@ class BatchUpload implements ShouldQueue
     {
         $fileCount = count($this->fileArray);
 
-        $jobs = [];
-        foreach ($this->fileArray as $file) {
-            $jobs[] = new UploadFile($this->search, $file, $this->timezone);
+        $firstJob = new UploadFile($this->search, $this->fileArray[0], $this->timezone, $fileCount);
+
+        $batch = Bus::batch($firstJob)->allowFailures();
+
+        foreach (array_slice($this->fileArray, 1) as $file) {
+            $batch->add(new UploadFile($this->search, $file, $this->timezone, $fileCount));
         }
 
-        $batch = Bus::batch($jobs)
-            ->allowFailures()
-            ->dispatch();
+        $batch->dispatch();
+    }
 
-        CheckBatchStatus::dispatch($batch->id, $this->search, $fileCount);
+    public function failed(\Throwable $exception)
+    {
+        Log::error('Batch failed', ['search' => $this->search->id, 'ex' => $exception]);
+
+        $this->search->status = SearchStatus::Failed;
+        $this->search->save();
     }
 }

@@ -23,6 +23,7 @@ class ProcessFile implements ShouldQueue
     public function __construct(
         public Search $search,
         public AudioFile $file,
+        public int $fileCount,
         public bool $retry = false,
     ) {}
 
@@ -37,7 +38,7 @@ class ProcessFile implements ShouldQueue
         }
 
         // If audio file doesn't exist
-        if (!$this->file->audio_path && !Storage::exists($this->file->audio_path)) {
+        if (! $this->file->audio_path || ! Storage::exists($this->file->audio_path)) {
             throw new \Exception('Audio file does not exist');
         }
 
@@ -49,16 +50,16 @@ class ProcessFile implements ShouldQueue
 
         // Check if the query response is valid
         if ($matches_json === null && json_last_error() !== JSON_ERROR_NONE) {
-            throw new \Exception('Invalid JSON returned: ' . json_last_error_msg());
+            throw new \Exception('Invalid JSON returned: '.json_last_error_msg());
         }
 
         // Check if the matchCount key exists
-        if (!isset($matches_json['matchCount'])) {
+        if (! isset($matches_json['matchCount'])) {
             throw new \Exception('matchCount not found in JSON response');
         }
 
         // Store search response to file
-        $transcription_path = 'transcriptions/' . Str::uuid()->toString() . '.json';
+        $transcription_path = 'transcriptions/'.Str::uuid()->toString().'.json';
         Storage::put($transcription_path, json_encode($matches_json));
 
         // Update File Model
@@ -70,6 +71,19 @@ class ProcessFile implements ShouldQueue
             $this->search->query_total += intval($matches_json['matchCount']);
         } else {
             $this->search->query_total = intval($matches_json['matchCount']);
+        }
+
+        // Check if all files have been processed
+        // One upload + one process per file => intdiv for whole files processed
+        $processedFiles = intdiv($this->batch()->processedJobs() + 1, 2);
+
+        // Use >= to avoid missing the edge‐case where other jobs finish sooner
+        if ($processedFiles >= $this->fileCount) {
+            if ($this->search->query_total > 0) {
+                CreateReport::dispatch($this->search);
+            } else {
+                $this->search->completeAndEmail();
+            }
         }
 
         // Save DB changes
@@ -137,8 +151,8 @@ class ProcessFile implements ShouldQueue
                 fclose($stream);
             }
 
-            if (!$response->successful()) {
-                throw new \Exception('Whisper API error: ' . $response->body());
+            if (! $response->successful()) {
+                throw new \Exception('Whisper API error: '.$response->body());
             }
 
             $result = $response->json();
