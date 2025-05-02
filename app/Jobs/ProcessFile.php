@@ -23,6 +23,7 @@ class ProcessFile implements ShouldQueue
     public function __construct(
         public Search $search,
         public AudioFile $file,
+        public int $fileCount,
         public bool $retry = false,
     ) {}
 
@@ -70,6 +71,21 @@ class ProcessFile implements ShouldQueue
             $this->search->query_total += intval($matches_json['matchCount']);
         } else {
             $this->search->query_total = intval($matches_json['matchCount']);
+        }
+
+        // Check if all files have been processed
+        // Add 1 to account for the current file
+        $processedFiles = ($this->batch()->processedJobs() + 1) / 2;
+
+        if ($processedFiles === $this->fileCount) {
+            Log::info('All files processed');
+            if ($this->search->query_total > 0) {
+                CreateReport::dispatch($this->search);
+            } else {
+                $this->search->completeAndEmail();
+            }
+        } else {
+            Log::info('Processed: ' . $this->batch()->processedJobs() + 1 . ' Files: ' . $this->fileCount);
         }
 
         // Save DB changes

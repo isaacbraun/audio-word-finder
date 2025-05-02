@@ -30,13 +30,11 @@ class BatchUpload implements ShouldQueue
 
         $jobs = [];
         foreach ($this->fileArray as $file) {
-            $jobs[] = new UploadFile($this->search, $file, $this->timezone);
+            $jobs[] = new UploadFile($this->search, $file, $this->timezone, $fileCount);
         }
 
-        $batch = Bus::batch($jobs)
+        Bus::batch($jobs)
             ->allowFailures()
             ->dispatch();
-
-        CheckBatchStatus::dispatch($batch->id, $this->search, $fileCount);
     }
 }
