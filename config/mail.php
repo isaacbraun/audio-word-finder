@@ -92,8 +92,8 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'no-reply@audio-search.braunbauen.com'),
-        'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Audio Search')),
+        'address' => env('MAIL_FROM_ADDRESS', 'no-reply-search-my-audio@braunbauen.com'),
+        'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Search My Audio | Braun Bauen')),
     ],
 
 ];
