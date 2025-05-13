@@ -132,7 +132,7 @@ new class extends Component {
             @elseif ($search->status === SearchStatus::Completed && $search->query_total > 0)
             <flux:callout.heading>
                 Processing Completed
-                <flux:text>{{ $search->query_total }} Total {{ Str::plural('Match', $search->query_total) }}</flux:text>
+                <flux:text>{{ $search->query_total }} total {{ Str::plural('match', $search->query_total) }}</flux:text>
             </flux:callout.heading>
 
             @if (Auth::user()->subscribed() && $search->report_path !== null)
