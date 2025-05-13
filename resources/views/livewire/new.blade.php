@@ -98,7 +98,7 @@ new #[Title('New')] class extends Component
 
 <div x-data="uploadHandler">
     <flux:heading size="xl" level="1">Create a new search</flux:heading>
-    <flux:subheading>Upload your audio files, then enter your search query.</flux:subheading>
+    <flux:subheading>Upload audio files to search their transcripts.</flux:subheading>
 
     <form wire:submit.prevent="submitFiles" class="mt-12">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-16">

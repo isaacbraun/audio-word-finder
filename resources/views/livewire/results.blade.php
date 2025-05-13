@@ -110,11 +110,11 @@ new class extends Component {
 }; ?>
 
 <div>
-    <div class="flex flex-row flex-wrap items-center justify-between gap-2">
+    <div class="flex flex-row flex-wrap items-center justify-between gap-2 mb-12">
         <flux:heading size="xl" level="1">Results for "{{ $query }}"</flux:heading>
 
         <flux:modal.trigger name="delete-search">
-            <flux:button size="sm" variant="danger" icon="trash">Delete</flux:button>
+            <flux:button size="sm" icon="trash">Delete</flux:button>
         </flux:modal.trigger>
     </div>
 
