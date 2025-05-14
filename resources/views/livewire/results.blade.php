@@ -123,7 +123,7 @@ new class extends Component {
 
     <!-- Processing status/results -->
     <div @if ($search->status !== SearchStatus::Completed) wire:poll.2s @endif>
-        <flux:callout class="my-8" inline color="{{ $this->status['color'] }}" icon="{{ $this->status['icon'] }}">
+        <flux:callout class="mb-4" inline color="{{ $this->status['color'] }}" icon="{{ $this->status['icon'] }}">
             @if ($search->status === SearchStatus::Processing)
             <flux:callout.heading class="justify-between">
                 Processing {{ count($search->files) }} {{ Str::plural('file', count($search->files)) }}
