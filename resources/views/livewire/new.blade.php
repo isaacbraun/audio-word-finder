@@ -104,8 +104,6 @@ new #[Title('New')] class extends Component
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-16">
             <div class="row-start-2 lg:col-span-2 lg:row-span-2">
                 <flux:field>
-                    <flux:error name="uploadedFiles" />
-
                     @if (Auth::user()->subscribed())
                     <input hidden multiple type="file" accept="audio/*" id="fileInput" @change="onFileInputChanged" />
                     @else
@@ -121,6 +119,8 @@ new #[Title('New')] class extends Component
                             <flux:text class="pointer-events-none"><span class="underline font-bold">Choose</span> or drop audio files</flux:text>
                         </flux:card>
                     </flux:label>
+
+                    <flux:error name="uploadedFiles" />
                 </flux:field>
 
                 <div class="flex flex-row flex-wrap gap-2 items-end justify-between mt-10">
@@ -145,7 +145,7 @@ new #[Title('New')] class extends Component
                         <flux:subheading>Invalid files will NOT be uploaded.</flux:subheading>
                     </div>
 
-                    <flux:button inset x-cloak x-show="localFiles.length > 0" size="sm" @click="clear" label="Remove all files from upload queue" variant="ghost">
+                    <flux:button inset="top bottom" x-cloak x-show="localFiles.length > 0" size="sm" @click="clear" label="Remove all files from upload queue" variant="ghost">
                         Clear All
                     </flux:button>
                 </div>
