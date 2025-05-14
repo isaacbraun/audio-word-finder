@@ -13,7 +13,7 @@
         </ul>
     </nav>
 
-    <flux:header id="navigation" container class="sticky top-0 border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+    <flux:header id="navigation" container class="sticky top-0 ">
         @auth
         <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
         @else
