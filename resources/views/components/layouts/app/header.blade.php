@@ -88,7 +88,7 @@
             </flux:menu>
         </flux:dropdown>
         @else
-        <flux:button size="sm" class="mr-2" :href="route('login')" wire:navigate.hover>
+        <flux:button size="sm" variant="ghost" class="mr-4" :href="route('login')" wire:navigate.hover>
             {{ __('Log In') }}
         </flux:button>
         <flux:button size="sm" variant="primary" :href="route('register')" wire:navigate.hover>
