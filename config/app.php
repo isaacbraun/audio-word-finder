@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Audio Word Finder'),
+    'name' => env('APP_NAME', 'Search My Audio'),
 
     /*
     |--------------------------------------------------------------------------

@@ -54,10 +54,11 @@ new #[Title('History')] class extends Component {
 
 <div>
     <flux:heading size="xl" level="1">History</flux:heading>
+    <flux:subheading>View and delete past searches.</flux:subheading>
 
     <livewire:confirm-delete @delete="delete" name="delete-search" />
 
-    <flux:table :paginate="$this->searches">
+    <flux:table :paginate="$this->searches" class="mt-12">
         <flux:table.columns>
             <flux:table.column sortable :sorted="$sortBy === 'query'" :direction="$sortDirection" wire:click="sort('query')">Query</flux:table.column>
             <flux:table.column sortable :sorted="$sortBy === 'query_total'" :direction="$sortDirection" wire:click="sort('query_total')">Matches</flux:table.column>

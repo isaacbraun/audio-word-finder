@@ -46,6 +46,30 @@
     }
 }
 
+@utility auto-fill-min-*{
+  grid-template-columns: repeat(auto-fill, minmax(min(--value([*]), 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(--value(--text-*), 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--spacing)* --value(integer), 100%), 1fr));
+}
+
+@utility auto-fill-max-*{
+  grid-template-columns: repeat(auto-fill, minmax(max(--value([*]), 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(max(--value(--text-*), 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(max(var(--spacing)* --value(integer), 100%), 1fr));
+}
+
+@utility auto-fit-min-*{
+  grid-template-columns: repeat(auto-fit, minmax(min(--value([*]), 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(--value(--text-*), 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--spacing)* --value(integer), 100%), 1fr));
+}
+
+@utility auto-fit-max-*{
+  grid-template-columns: repeat(auto-fit, minmax(max(--value([*]), 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(max(--value(--text-*), 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(max(var(--spacing)* --value(integer), 100%), 1fr));
+}
+
 [data-flux-field] {
     @apply grid gap-2;
 }
