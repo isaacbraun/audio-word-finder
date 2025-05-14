@@ -21,8 +21,6 @@ cmds = [
     "echo artisan commands",
     "php artisan migrate --force",
     "php artisan optimize",
-    "rm -rf node_modules",
-    "echo build ended"
 ]
 
 [start]
