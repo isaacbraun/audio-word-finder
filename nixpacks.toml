@@ -4,21 +4,22 @@ nixPkgs = ["...", "python311Packages.supervisor"]
 [phases.install]
 cmds = [
     "composer config http-basic.composer.fluxui.dev isaacbraun2000@gmail.com 9137a3c1-3b33-44fe-ae4d-2aa5626f2aa9",
-    "composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-reqs",
-    "npm install",
-    "npm ci --audit false",
-    "npm run build",
+    "...",
+    # "composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-reqs",
+    # "npm install",
+    # "npm ci --audit false",
+    # "npm run build",
 ]
 
 [phases.build]
 cmds = [
-    "echo build started",
     "mkdir -p /etc/supervisor/conf.d/",
     "cp /assets/worker-*.conf /etc/supervisor/conf.d/",
     "cp /assets/supervisord.conf /etc/supervisord.conf",
     "chmod +x /assets/start.sh",
-    "php artisan migrate --force",
-    "php artisan optimize",
+    # "php artisan migrate --force",
+    # "php artisan optimize",
+    "...",
 ]
 
 [start]
