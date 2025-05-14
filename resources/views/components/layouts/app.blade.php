@@ -1,5 +1,5 @@
 <x-layouts.app.header :title="$title ?? null">
-    <flux:main container id="content">
+    <flux:main container id="content" class="!py-8 !lg:py-12">
         {{ $slot }}
     </flux:main>
 
