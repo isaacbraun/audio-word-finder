@@ -15,9 +15,10 @@ cmds = [
     "cp /assets/worker-*.conf /etc/supervisor/conf.d/",
     "cp /assets/supervisord.conf /etc/supervisord.conf",
     "chmod +x /assets/start.sh",
+    "npm run build",
     "php artisan migrate --force",
     "php artisan optimize",
-    "npm run build",
+    "php artisan queue:work database --timeout=180",
 ]
 
 [start]
