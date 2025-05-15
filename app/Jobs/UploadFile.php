@@ -45,9 +45,10 @@ class UploadFile implements ShouldQueue
         $newPath = "audioFiles/{$this->file['path']}";
 
         // Check if file doesn't exist
-        if (! Storage::exists($tempPath)) {
+        if (!Storage::exists($tempPath)) {
             // TODO: how should this be handled? Show error for file?
             Log::error('UploadFiles: file not found', ['path' => $tempPath]);
+            return;
         }
 
         if ($this->validateFile($tempPath)) {
