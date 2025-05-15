@@ -18,12 +18,12 @@ cmds = [
     "npm run build",
     "php artisan migrate --force",
     "php artisan optimize",
-    "php artisan queue:work database --timeout=180",
 ]
 
 [start]
 cmds = [
     "/assets/start.sh",
+    "php artisan queue:work database --timeout=180",
 ]
 
 [staticAssets]
