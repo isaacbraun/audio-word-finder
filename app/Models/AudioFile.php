@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Enums\FileStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class AudioFile extends Model
 {
@@ -33,6 +35,7 @@ class AudioFile extends Model
     {
         return [
             'parsed_date' => 'datetime',
+            'status' => FileStatus::class,
         ];
     }
 
@@ -50,6 +53,38 @@ class AudioFile extends Model
     public function getFormattedParsedDateAttribute(): string
     {
         return $this->parsed_date->setTimezone(Auth::user()->timezone ?? 'UTC')->toDayDateTimeString();
+    }
+
+    public function getTranscription(): array
+    {
+        // Check if transcription_path is null
+        if (!$this->transcription_path) {
+            // Set status to transcription-missing
+            $this->status = FileStatus::TranscriptionMissing;
+            $this->save();
+
+            return [];
+        }
+
+        // Load transcription from storage
+        $transcription = Storage::json($this->transcription_path);
+
+        return $transcription ?? [];
+    }
+
+    public function checkStatus(): void
+    {
+        // Check if transcription_path is set
+        if ($this->transcription_path) {
+            // Load transcription from storage
+            $transcription = Storage::json($this->transcription_path);
+
+            // If transcription is empty, set status to transcription-missing
+            if (! $transcription) {
+                $this->status = FileStatus::TranscriptionMissing;
+                $this->save();
+            }
+        }
     }
 
     /**
@@ -110,7 +145,7 @@ class AudioFile extends Model
 
             if ($dateTime->lt($minDate) || $dateTime->gt($maxDate)) {
                 // Date is suspiciously old or in the future
-                throw new \Exception('Filename date out of reasonable range: ' . $dateTime->toDateTimeString());
+                throw new \Exception('Filename date out of reasonable range: '.$dateTime->toDateTimeString());
             }
 
             return $dateTime;

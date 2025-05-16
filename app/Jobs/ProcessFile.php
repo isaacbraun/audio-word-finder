@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Enums\FileStatus;
 use App\Enums\SearchStatus;
 use App\Models\AudioFile;
 use App\Models\Search;
@@ -65,6 +66,7 @@ class ProcessFile implements ShouldQueue
         // Update File Model
         $this->file->query_count = $matches_json['matchCount'];
         $this->file->transcription_path = $transcription_path;
+        $this->file->status = FileStatus::Transcribed;
 
         // Update Search Model Query Total
         if ($this->search->query_total) {
@@ -109,7 +111,7 @@ class ProcessFile implements ShouldQueue
     public function failed(\Throwable $exception)
     {
         // Set transcription_path to 'failed' as pseudo status
-        $this->file->transcription_path = 'failed';
+        $this->file->status = FileStatus::Failed;
         $this->file->save();
 
         if (app()->bound('sentry')) {
