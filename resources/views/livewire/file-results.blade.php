@@ -83,7 +83,7 @@ new class extends Component
                 @endif
             </div>
 
-            <p>{{ $this->transcription_path }}</p>
+            <p>{{ $this->file->transcription_path }}</p>
 
             @if (!$this->transcription && !$this->failed)
             <flux:icon.loading variant="micro" />
