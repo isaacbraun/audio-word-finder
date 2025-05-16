@@ -2,9 +2,8 @@
 
 use App\Jobs\ProcessFile;
 use App\Models\AudioFile;
+use App\Enums\FileStatus;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Volt\Component;
@@ -13,20 +12,15 @@ new class extends Component
 {
     public AudioFile $file;
 
-    public $failed = false;
+    public function mount()
+    {
+        $this->file->checkStatus();
+    }
 
-    #[Computed()]
+    #[Computed]
     public function transcription(): array
     {
-        if ($this->file->transcription_path === 'failed') {
-            $this->failed = true;
-        } elseif ($this->file->transcription_path) {
-            Log::info('FileResults: loading transcription from {path}', ['path' => $this->file->transcription_path]);
-            $file = Storage::json($this->file->transcription_path);
-            Log::info('File reponse: {file}', ['file' => $file]);
-        }
-
-        return $file ?? [];
+        return $this->file->getTranscription();
     }
 
     #[Computed()]
@@ -44,7 +38,6 @@ new class extends Component
     public function retry()
     {
         // Reset transcription path and failed var to show correct UI state
-        $this->failed = false;
         $this->file->transcription_path = null;
         $this->file->save();
 
@@ -53,12 +46,12 @@ new class extends Component
 
     public function copyTranscription(): void
     {
-        $fullText = Arr::get($this->transcription(), 'fullText');
+        $fullText = Arr::get($this->transcription, 'fullText');
         $this->dispatch('copy-to-clipboard', transcription: $fullText);
     }
 }; ?>
 
-<div @if (!$this->transcription) wire:poll.2s @endif>
+<div @if ($this->file->status === FileStatus::Processing) wire:poll.2s @endif>
     <flux:card class="!p-4">
         <div class="flex flex-row flex-wrap gap-2 justify-between">
             <div>
@@ -83,9 +76,9 @@ new class extends Component
                 @endif
             </div>
 
-            @if (!$this->transcription && !$this->failed)
+            @if ($this->file->status === FileStatus::Processing)
             <flux:icon.loading variant="micro" />
-            @elseif (Arr::has($this->transcription, "fullText"))
+            @elseif ($this->file->status === FileStatus::Transcribed && Arr::has($this->transcription, "fullText"))
             <flux:button
                 wire:click="copyTranscription"
                 icon:trailing="document-duplicate"
@@ -93,13 +86,16 @@ new class extends Component
                 size="sm"
                 title="{{ $this->copyTitle }}"
                 inset></flux:button>
+            @else
+            <flux:tooltip toggleable>
+                <flux:button icon="exclamation-triangle" size="sm" inset variant="subtle" />
+
+                <flux:tooltip.content>The transcription is missing.</flux:tooltip.content>
+            </flux:tooltip>
             @endif
         </div>
 
-        <p>{{ var_dump($this->file->transcription_path) }}</p>
-        <p>{{ var_dump($this->transcription) }}</p>
-
-        @if ($this->transcription)
+        @if ($this->file->status === FileStatus::Transcribed)
         <flux:accordion class="mt-2" variant="reverse">
             <flux:accordion.item heading="View Transcription">
                 <flux:accordion.content class="leading-loose">
@@ -113,13 +109,13 @@ new class extends Component
                 </flux:accordion.content>
             </flux:accordion.item>
         </flux:accordion>
-        @elseif ($this->failed)
+        @elseif ($this->file->status === FileStatus::Failed)
         <flux:callout class="mt-2" icon="exclamation-triangle" color="red" inline>
             <flux:callout.heading>Processing failed</flux:callout.heading>
 
-            <x-slot name="actions">
-                <flux:button wire:click="retry">Retry</flux:button>
-            </x-slot>
+            <!-- <x-slot name="actions"> -->
+            <!--     <flux:button wire:click="retry">Retry</flux:button> -->
+            <!-- </x-slot> -->
         </flux:callout>
         @endif
     </flux:card>
