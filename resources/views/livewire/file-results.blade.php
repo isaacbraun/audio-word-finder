@@ -3,6 +3,7 @@
 use App\Jobs\ProcessFile;
 use App\Models\AudioFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
@@ -20,7 +21,9 @@ new class extends Component
         if ($this->file->transcription_path === 'failed') {
             $this->failed = true;
         } elseif ($this->file->transcription_path) {
+            Log::info('FileResults: loading transcription from {path}', ['path' => $this->file->transcription_path]);
             $file = Storage::json($this->file->transcription_path);
+            Log::info('File reponse: {file}', ['file' => $file]);
         }
 
         return $file ?? [];
