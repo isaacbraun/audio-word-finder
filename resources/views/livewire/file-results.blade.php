@@ -32,13 +32,13 @@ new class extends Component
     #[Computed()]
     public function badgeString(): string
     {
-        return $this->file->query_count . ' ' . Str::plural('Match', $this->file->query_count);
+        return $this->file->query_count.' '.Str::plural('Match', $this->file->query_count);
     }
 
     #[Computed()]
     public function copyTitle(): string
     {
-        return 'Copy transcription of ' . $this->file->audio_filename . ' to clipboard';
+        return 'Copy transcription of '.$this->file->audio_filename.' to clipboard';
     }
 
     public function retry()
@@ -83,6 +83,8 @@ new class extends Component
                 @endif
             </div>
 
+            <p>{{ $this->transcription_path }}</p>
+
             @if (!$this->transcription && !$this->failed)
             <flux:icon.loading variant="micro" />
             @elseif (Arr::has($this->transcription, "fullText"))
@@ -95,6 +97,8 @@ new class extends Component
                 inset></flux:button>
             @endif
         </div>
+
+        <p>{{ $this->transcription }}</p>
 
         @if ($this->transcription)
         <flux:accordion class="mt-2" variant="reverse">
