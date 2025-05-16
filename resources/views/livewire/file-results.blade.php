@@ -83,8 +83,6 @@ new class extends Component
                 @endif
             </div>
 
-            <p>{{ $this->file->transcription_path }}</p>
-
             @if (!$this->transcription && !$this->failed)
             <flux:icon.loading variant="micro" />
             @elseif (Arr::has($this->transcription, "fullText"))
@@ -98,7 +96,8 @@ new class extends Component
             @endif
         </div>
 
-        <p>{{ $this->transcription }}</p>
+        <p>{{ var_dump($this->file->transcription_path) }}</p>
+        <p>{{ var_dump($this->transcription) }}</p>
 
         @if ($this->transcription)
         <flux:accordion class="mt-2" variant="reverse">
