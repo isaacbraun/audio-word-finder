@@ -16,4 +16,14 @@ return new class extends Migration
                 ->default('processing');
         });
     }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('files', function (Blueprint $table) {
+            $table->dropColumn('status');
+        });
+    }
 };
