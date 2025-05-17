@@ -125,7 +125,7 @@ class Search extends Model
 
     public function addToQueryCount(int $count): void
     {
-        if ($this->query_total) {
+        if (isset($this->query_total) && $this->query_total > 0) {
             $this->query_total += intval($count);
         } else {
             $this->query_total = intval($count);
