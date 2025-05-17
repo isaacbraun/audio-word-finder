@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\FileStatus;
 use App\Enums\SearchStatus;
 use App\Jobs\BatchUpload;
 use App\Jobs\CreateReport;
@@ -83,6 +84,54 @@ class Search extends Model
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * Check if all files are in the given status
+     * @param FileStatus $status The status to check
+     * @return bool True if all files are in the given status, false otherwise
+     */
+    public function setStatusIfTrue(SearchStatus $status, FileStatus $fileStatus): bool
+    {
+        // Check if there are NO files with a status NOT equal to the desired status
+        $allChildrenMatchStatus = $this->files()
+            ->where('status', '!=', $fileStatus)
+            ->doesntExist();
+
+        Log::info('filesAreAll ' . $fileStatus->value . ': ' . ($allChildrenMatchStatus ? 'true' : 'false'));
+
+        if ($allChildrenMatchStatus) {
+            $this->status = $status;
+            $this->save(); // Call save on the model instance
+            return true;
+        }
+
+        return false;
+    }
+
+    public function finishSearch(bool $retry): void
+    {
+        if ($this->query_total > 0) {
+            CreateReport::dispatch($this);
+        } else {
+            if ($retry) {
+                $this->status = SearchStatus::Completed;
+                static::save();
+            } else {
+                static::completeAndEmail();
+            }
+        }
+    }
+
+    public function addToQueryCount(int $count): void
+    {
+        if ($this->query_total) {
+            $this->query_total += intval($count);
+        } else {
+            $this->query_total = intval($count);
+        }
+
+        static::save();
     }
 
     /**
