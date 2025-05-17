@@ -95,10 +95,6 @@ class ProcessFile implements ShouldQueue
         $matches_json = $this->findAndSegment($transcription_response, $this->search->query);
 
         // Check if the query response is valid
-        if ($matches_json === null && json_last_error() !== JSON_ERROR_NONE) {
-            throw new \Exception('Invalid JSON returned: ' . json_last_error_msg());
-        }
-
         // Check if the matchCount key exists
         if (! isset($matches_json['matchCount'])) {
             throw new \Exception('matchCount not found in JSON response');
