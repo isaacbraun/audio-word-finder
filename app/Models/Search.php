@@ -116,7 +116,7 @@ class Search extends Model
 
         $this->status = SearchStatus::Completed;
         $this->save();
-        $this->completeAndEmail();
+
     }
 
     /**
@@ -140,11 +140,8 @@ class Search extends Model
     /****
      * Marks the search as completed, saves the status, and emails the user if a completion email is set.
      */
-    public function completeAndEmail(): void
+    public function sendEmail(): void
     {
-        $this->status = SearchStatus::Completed;
-        $this->save();
-
         // Send user email of completion
         if ($this->completion_email) {
             Mail::to($this->user)->send(new SearchFinished($this));

@@ -29,13 +29,13 @@ class CreateReport implements ShouldQueue
             $path = $this->createCsv();
         } catch (\Exception $e) {
             Log::error('REPORT: ' . $e->getMessage());
-            $this->search->completeAndEmail();
+            $this->search->sendEmail();
         }
 
         $this->search->report_path = $path;
         $this->search->save();
 
-        $this->search->completeAndEmail();
+        $this->search->sendEmail();
     }
 
     protected function createCsv(): string
