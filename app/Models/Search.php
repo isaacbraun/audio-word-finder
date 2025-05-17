@@ -116,9 +116,9 @@ class Search extends Model
         } else {
             if ($retry) {
                 $this->status = SearchStatus::Completed;
-                static::save();
+                $this->save();
             } else {
-                static::completeAndEmail();
+                $this->completeAndEmail();
             }
         }
     }
@@ -131,7 +131,7 @@ class Search extends Model
             $this->query_total = intval($count);
         }
 
-        static::save();
+        $this->save();
     }
 
     /**
@@ -140,7 +140,7 @@ class Search extends Model
     public function completeAndEmail(): void
     {
         $this->status = SearchStatus::Completed;
-        static::save();
+        $this->save();
 
         // Send user email of completion
         if ($this->completion_email) {
