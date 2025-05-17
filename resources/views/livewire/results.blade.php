@@ -90,6 +90,11 @@ new class extends Component {
         }
     }
 
+    /**
+     * Deletes the current search and redirects to the new search page.
+     *
+     * Logs the deletion attempt and any errors encountered during the process.
+     */
     public function delete()
     {
         try {

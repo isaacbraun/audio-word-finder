@@ -18,8 +18,12 @@ class ProcessFile implements ShouldQueue
 {
     use Batchable, Queueable;
 
-    /**
-     * Create a new job instance.
+    /****
+     * Initializes the ProcessFile job with the given search and audio file models.
+     *
+     * @param Search $search The search operation associated with this job.
+     * @param AudioFile $file The audio file to be processed.
+     * @param bool $retry Indicates if this is a retry attempt.
      */
     public function __construct(
         public Search $search,
@@ -27,8 +31,10 @@ class ProcessFile implements ShouldQueue
         public bool $retry = false,
     ) {}
 
-    /**
-     * Execute the job.
+    /****
+     * Processes an audio file for transcription and search as a queued job.
+     *
+     * Checks for batch cancellation, updates the search and file statuses, verifies audio file existence, transcribes the audio, searches for query matches, stores the results, and updates related models. On failure, marks the file as failed and rethrows the exception.
      */
     public function handle(): void
     {
@@ -71,10 +77,11 @@ class ProcessFile implements ShouldQueue
     }
 
     /**
-     * The job failed to process.
+     * Handles cleanup and error reporting when the job fails.
      *
-     * @param  \Exception  $exception
-     * @return void
+     * Sets the audio file status to failed and saves it. Reports the exception to Sentry if available; otherwise logs a warning.
+     *
+     * @param \Throwable $exception The exception that caused the job to fail.
      */
     public function failed(\Throwable $exception)
     {
@@ -88,6 +95,12 @@ class ProcessFile implements ShouldQueue
         }
     }
 
+    /**
+     * Transcribes the audio file, searches for query matches, and stores the results as a JSON file.
+     *
+     * @return array An array containing the transcription file path and the number of query matches found.
+     * @throws \Exception If the match count is missing from the search results or if writing to storage fails.
+     */
     protected function processAndStore(): array
     {
         // Get transcription response from Whisper
@@ -117,11 +130,12 @@ class ProcessFile implements ShouldQueue
         }
     }
 
-    /**
-     * Transcribe audio file using OpenAI's Whisper API.
+    /****
+     * Sends an audio file to OpenAI's Whisper API and returns the transcribed text.
      *
-     * @param  string  $audioFilePath  Path to the audio file
-     * @return string The transcribed text
+     * @param string $audio_path Path to the audio file in storage.
+     * @return string The transcribed text from the audio file.
+     * @throws \Exception If the Whisper API request fails or returns an error.
      */
     protected function transcribeWithWhisper(string $audio_path): string
     {

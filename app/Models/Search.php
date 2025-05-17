@@ -53,10 +53,14 @@ class Search extends Model
     }
 
     /**
-     * Create a new search with associated files
+     * Creates a new search record with associated files and dispatches a batch upload job.
      *
-     * @param  array  $searchData  Array containing user_id, query, and completion_email
-     * @param  array  $fileArray  Array of [name, path] pairs
+     * Throws an exception if no files are provided. Returns the ID of the created search.
+     *
+     * @param array $searchData Associative array with keys: user_id, query, and completion_email.
+     * @param array $fileArray Array of [name, path] pairs representing files to associate.
+     * @return int The ID of the newly created search.
+     * @throws Exception If no files are provided or creation fails.
      */
     public static function createWithFiles(array $searchData, array $fileArray): int
     {
@@ -84,6 +88,13 @@ class Search extends Model
         }
     }
 
+    /**
+     * Finalizes the search if all associated files are processed.
+     *
+     * If no files remain in the 'Queued' or 'Uploaded' status, marks the search as completed, saves it, and sends a completion email. If not a retry and matches were found, dispatches a report creation job before completing.
+     *
+     * @param bool $retry Indicates if this is a retry attempt.
+     */
     public function attemptToFinish(bool $retry): void
     {
         // Check if there are NO files with a status NOT equal to the desired status
@@ -105,9 +116,16 @@ class Search extends Model
 
         $this->status = SearchStatus::Completed;
         $this->save();
-        $this->completeAndEmail();
+
     }
 
+    /**
+     * Increments the query total for the search by the specified count.
+     *
+     * If the query total is not set or is zero, it initializes it with the given count.
+     *
+     * @param int $count The number to add to the query total.
+     */
     public function addToQueryCount(int $count): void
     {
         if (isset($this->query_total) && $this->query_total > 0) {
@@ -120,13 +138,10 @@ class Search extends Model
     }
 
     /**
-     * Set status to completed and send email
+     * Send email to user if requested
      */
-    public function completeAndEmail(): void
+    public function sendEmail(): void
     {
-        $this->status = SearchStatus::Completed;
-        $this->save();
-
         // Send user email of completion
         if ($this->completion_email) {
             Mail::to($this->user)->send(new SearchFinished($this));

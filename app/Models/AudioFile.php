@@ -55,6 +55,13 @@ class AudioFile extends Model
         return $this->parsed_date->setTimezone(Auth::user()->timezone ?? 'UTC')->toDayDateTimeString();
     }
 
+    /**
+     * Retrieves the transcription data for the audio file.
+     *
+     * Attempts to load and return the transcription as an array from the file specified by the `transcription_path` attribute. If the transcription file is missing, empty, or cannot be loaded, updates the file's status to `TranscriptionMissing` and returns an empty array.
+     *
+     * @return array The transcription data, or an empty array if unavailable.
+     */
     public function getTranscription(): array
     {
         if (!$this->transcription_path) {
@@ -79,8 +86,16 @@ class AudioFile extends Model
         }
     }
 
-    /**
-     * Create a new AudioFile from an uploaded file
+    /****
+     * Creates and saves a new AudioFile record from an uploaded file.
+     *
+     * Initializes the audio file with a sanitized filename, parses the date from the original filename using the provided timezone, and sets the status to Uploaded.
+     *
+     * @param int $searchId The ID of the related search.
+     * @param string $path The storage path of the uploaded audio file.
+     * @param string $originalFilename The original name of the uploaded file.
+     * @param string $timezone The timezone used for parsing the date from the filename.
+     * @return static The newly created AudioFile instance.
      */
     public static function createFromUpload(
         int $searchId,
@@ -111,8 +126,16 @@ class AudioFile extends Model
         return substr($sanitized, 0, 255);
     }
 
-    /**
-     * Parse the date from the filename
+    /****
+     * Extracts and parses a UTC datetime from a filename using the WSMC skimmer format.
+     *
+     * Attempts to find a date and time in the filename matching the pattern 'YYYY-MM-DD_HH-MM-SS',
+     * converts it to a Carbon instance in UTC, and validates that the date is within a reasonable range
+     * (not older than 5 years or more than 1 year in the future). Returns null if parsing fails or the date is out of range.
+     *
+     * @param string $filename The filename containing the date and time.
+     * @param string $timezone The timezone to interpret the extracted date and time.
+     * @return Carbon|null The parsed UTC datetime, or null if extraction or validation fails.
      */
     protected static function parseDate(string $filename, string $timezone): ?Carbon
     {

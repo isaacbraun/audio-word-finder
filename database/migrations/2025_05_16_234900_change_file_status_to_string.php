@@ -6,8 +6,10 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
+    /****
+     * Updates the 'status' column in the 'files' table to a string type with a default value of 'Queued'.
+     *
+     * Alters the existing 'status' column to use the string value of the 'Queued' status from the FileStatus enum as its default.
      */
     public function up(): void
     {
@@ -17,7 +19,7 @@ return new class extends Migration
     }
 
     /**
-     * Reverse the migrations.
+     * Reverts the `status` column in the `files` table to a string with a default value of 'processing'.
      */
     public function down(): void
     {

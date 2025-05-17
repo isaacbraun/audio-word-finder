@@ -24,8 +24,10 @@ class UpdateFileStatus extends Command
      */
     protected $description = 'Update the File Status to new enums deriving state from stored info';
 
-    /**
-     * Execute the console command.
+    /****
+     * Updates the status of all audio files based on their current status, transcription, and audio file presence.
+     *
+     * Iterates through all `AudioFile` records, validates their status against the `FileStatus` enum, and updates the status according to the existence and validity of associated transcription and audio files. Outputs a success message upon completion.
      */
     public function handle()
     {
