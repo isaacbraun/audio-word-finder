@@ -137,8 +137,8 @@ class Search extends Model
         $this->save();
     }
 
-    /****
-     * Marks the search as completed, saves the status, and emails the user if a completion email is set.
+    /**
+     * Send email to user if requested
      */
     public function sendEmail(): void
     {
