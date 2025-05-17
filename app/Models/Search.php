@@ -6,14 +6,12 @@ use App\Enums\FileStatus;
 use App\Enums\SearchStatus;
 use App\Jobs\BatchUpload;
 use App\Jobs\CreateReport;
-use App\Jobs\UploadFile;
 use App\Mail\SearchFinished;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -86,41 +84,28 @@ class Search extends Model
         }
     }
 
-    /**
-     * Check if all files are in the given status
-     * @param FileStatus $status The status to check
-     * @return bool True if all files are in the given status, false otherwise
-     */
-    public function setStatusIfTrue(SearchStatus $status, FileStatus $fileStatus): bool
+    public function attemptToFinish(bool $retry): void
     {
         // Check if there are NO files with a status NOT equal to the desired status
-        $allChildrenMatchStatus = $this->files()
-            ->where('status', '!=', $fileStatus)
+        $allFilesProcessed = $this->files()
+            ->whereIn('status', [FileStatus::Queued, FileStatus::Uploaded])
             ->doesntExist();
 
-        Log::info('filesAreAll ' . $fileStatus->value . ': ' . ($allChildrenMatchStatus ? 'true' : 'false'));
+        Log::info('All Processed: ' . $allFilesProcessed);
 
-        if ($allChildrenMatchStatus) {
-            $this->status = $status;
-            $this->save(); // Call save on the model instance
-            return true;
+        // If all files have NOT been processed, exit
+        if (!$allFilesProcessed) {
+            return;
         }
 
-        return false;
-    }
-
-    public function finishSearch(bool $retry): void
-    {
-        if ($this->query_total > 0) {
+        // Create Report if matches found
+        if (!$retry && $this->query_total > 0) {
             CreateReport::dispatch($this);
-        } else {
-            if ($retry) {
-                $this->status = SearchStatus::Completed;
-                $this->save();
-            } else {
-                $this->completeAndEmail();
-            }
         }
+
+        $this->status = SearchStatus::Completed;
+        $this->save();
+        $this->completeAndEmail();
     }
 
     public function addToQueryCount(int $count): void

@@ -55,7 +55,6 @@ class UploadFile implements ShouldQueue
         if ($this->validateFile($tempPath)) {
             $this->moveFile($tempPath, $newPath);
             $this->createAndQueue($newPath);
-            $this->search->setStatusIfTrue(SearchStatus::Processing, FileStatus::Uploaded);
         }
     }
 
@@ -102,6 +101,6 @@ class UploadFile implements ShouldQueue
         );
 
         // Queue the file for processing
-        $this->batch()->add(new ProcessFile($this->search, $file, $this->fileCount));
+        $this->batch()->add(new ProcessFile($this->search, $file));
     }
 }

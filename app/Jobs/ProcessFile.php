@@ -37,6 +37,12 @@ class ProcessFile implements ShouldQueue
             return;
         }
 
+        // Update Search Status if necessary
+        if ($this->search->status !== SearchStatus::Processing) {
+            $this->search->status = SearchStatus::Processing;
+            $this->search->save();
+        }
+
         // If audio file doesn't exist
         if (! $this->file->audio_path || ! Storage::exists($this->file->audio_path)) {
             throw new \Exception('Audio file does not exist');
@@ -55,12 +61,8 @@ class ProcessFile implements ShouldQueue
             // Update query total
             $this->search->addToQueryCount($match_count);
 
-            // If all files have been processed, finish search
-            if ($this->retry) {
-                $this->search->finishSearch(true);
-            } elseif ($this->search->setStatusIfTrue(SearchStatus::Completed, FileStatus::Transcribed)) {
-                $this->search->finishSearch(false);
-            }
+            // Call Finished Check
+            $this->search->attemptToFinish($this->retry);
         } catch (\Exception $e) {
             $this->file->status = FileStatus::Failed;
             $this->file->save();
@@ -94,7 +96,6 @@ class ProcessFile implements ShouldQueue
         // Search for query and format
         $matches_json = $this->findAndSegment($transcription_response, $this->search->query);
 
-        // Check if the query response is valid
         // Check if the matchCount key exists
         if (! isset($matches_json['matchCount'])) {
             throw new \Exception('matchCount not found in JSON response');
