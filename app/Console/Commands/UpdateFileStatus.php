@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Enums\FileStatus;
 use App\Models\AudioFile;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class UpdateFileStatus extends Command
@@ -43,7 +42,6 @@ class UpdateFileStatus extends Command
 
             // Check if the raw status is not a valid enum value
             if (!in_array($rawStatus, $validEnumValues)) {
-                Log::error('UpdateFileStatus: invalid status value', ['value' => $rawStatus]);
                 // Set status to 'queued' using the enum case
                 $file->status = FileStatus::Queued;
             }
@@ -54,10 +52,8 @@ class UpdateFileStatus extends Command
                 $transcription = Storage::json($file->transcription_path);
                 // If transcription is empty, set status to transcription-missing
                 if (! $transcription) {
-                    Log::info('UpdateFileStatus: transcription missing', ['path' => $file->transcription_path]);
                     $file->status = FileStatus::TranscriptionMissing;
                 } else {
-                    Log::info('UpdateFileStatus: transcription found', ['path' => $file->transcription_path]);
                     $file->status = FileStatus::Transcribed;
                 }
             }
@@ -66,16 +62,13 @@ class UpdateFileStatus extends Command
             elseif ($file->audio_path) {
                 // Check if file exists
                 if (! Storage::exists($file->audio_path)) {
-                    Log::info('UpdateFileStatus: audio file not found', ['path' => $file->audio_path]);
                     // Set status to 'failed'
                     $file->status = FileStatus::Failed;
                 } else {
-                    Log::info('UpdateFileStatus: audio uploaded', ['path' => $file->audio_path]);
                     // Set status to 'uploaded'
                     $file->status = FileStatus::Uploaded;
                 }
             } else {
-                Log::info('UpdateFileStatus: audio file not found', ['path' => $file->audio_path]);
                 // Set status to 'failed'
                 $file->status = FileStatus::Failed;
             }
