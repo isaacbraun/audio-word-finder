@@ -108,11 +108,11 @@ class ProcessFile implements ShouldQueue
 
             return [$transcription_path, $matches_json['matchCount']];
         } catch (\Exception $e) {
-            throw new \Exception('Error writing transcription to storage: ' . $e->getMessage());
-            $this->file->status = FileStatus::Failed;
-            $this->file->save();
-
-            return [];
+            // Let the caller decide how to mark failure
+            throw new \Exception(
+                'Error writing transcription to storage: ' . $e->getMessage(),
+                previous: $e
+            );
         }
     }
 
