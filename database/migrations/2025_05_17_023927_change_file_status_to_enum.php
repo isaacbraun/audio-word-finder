@@ -12,8 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('files', function (Blueprint $table) {
-            $table->enum('status', FileStatus::cases())->default(FileStatus::Queued->value)->change();
+        // Get an array of the backing values from your enum cases
+        $statusValues = array_column(FileStatus::cases(), 'value');
+
+        Schema::table('files', function (Blueprint $table) use ($statusValues) {
+            $table->enum('status', $statusValues)->default(FileStatus::Queued->value)->change();
         });
     }
 
