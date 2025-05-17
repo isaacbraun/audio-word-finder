@@ -31,7 +31,9 @@ class UploadFile implements ShouldQueue
     ) {}
 
     /**
-     * Execute the job.
+     * Handles the upload and validation of an audio file within a queued job.
+     *
+     * Checks for batch cancellation, verifies file existence and validity, moves the file to permanent storage, and queues it for further processing.
      */
     public function handle(): void
     {
@@ -90,6 +92,11 @@ class UploadFile implements ShouldQueue
         }
     }
 
+    /**
+     * Creates an audio file record from the uploaded file and queues it for processing.
+     *
+     * @param string $path The storage path of the uploaded file.
+     */
     public function createAndQueue($path): void
     {
         // Create the audio file record

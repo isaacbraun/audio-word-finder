@@ -12,6 +12,11 @@ new class extends Component
 {
     public AudioFile $file;
 
+    /**
+     * Retrieves the transcription segments for the audio file.
+     *
+     * @return array The transcription data as an array of segments.
+     */
     #[Computed]
     public function transcription(): array
     {
@@ -30,6 +35,11 @@ new class extends Component
         return 'Copy transcription of '.$this->file->audio_filename.' to clipboard';
     }
 
+    /**
+     * Resets the audio file's transcription state and re-queues it for processing.
+     *
+     * Sets the file status to "Uploaded", clears any existing transcription path, saves the changes, and dispatches a job to retry processing the file.
+     */
     public function retry()
     {
         // Reset transcription path and failed var to show correct UI state
@@ -40,6 +50,9 @@ new class extends Component
         ProcessFile::dispatch($this->file->search, $this->file, true);
     }
 
+    /**
+     * Dispatches a browser event to copy the full transcription text to the clipboard.
+     */
     public function copyTranscription(): void
     {
         $fullText = Arr::get($this->transcription, 'fullText');
