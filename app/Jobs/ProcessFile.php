@@ -24,7 +24,6 @@ class ProcessFile implements ShouldQueue
     public function __construct(
         public Search $search,
         public AudioFile $file,
-        public int $fileCount,
         public bool $retry = false,
     ) {}
 
@@ -38,67 +37,36 @@ class ProcessFile implements ShouldQueue
             return;
         }
 
+        // Update Search Status if necessary
+        if ($this->search->status !== SearchStatus::Processing) {
+            $this->search->status = SearchStatus::Processing;
+            $this->search->save();
+        }
+
         // If audio file doesn't exist
         if (! $this->file->audio_path || ! Storage::exists($this->file->audio_path)) {
             throw new \Exception('Audio file does not exist');
         }
 
-        // Get transcription response from Whisper
-        $transcription_response = $this->transcribeWithWhisper($this->file->audio_path);
+        // Process File
+        try {
+            [$transcription_path, $match_count] = $this->processAndStore();
 
-        // Search for query and format
-        $matches_json = $this->findAndSegment($transcription_response, $this->search->query);
+            // Update File Model
+            $this->file->query_count = $match_count;
+            $this->file->transcription_path = $transcription_path;
+            $this->file->status = FileStatus::Transcribed;
+            $this->file->save();
 
-        // Check if the query response is valid
-        if ($matches_json === null && json_last_error() !== JSON_ERROR_NONE) {
-            throw new \Exception('Invalid JSON returned: '.json_last_error_msg());
-        }
+            // Update query total
+            $this->search->addToQueryCount($match_count);
 
-        // Check if the matchCount key exists
-        if (! isset($matches_json['matchCount'])) {
-            throw new \Exception('matchCount not found in JSON response');
-        }
-
-        // Store search response to file
-        $transcription_path = 'transcriptions/'.Str::uuid()->toString().'.json';
-        Storage::put($transcription_path, json_encode($matches_json));
-
-        // Update File Model
-        $this->file->query_count = $matches_json['matchCount'];
-        $this->file->transcription_path = $transcription_path;
-        $this->file->status = FileStatus::Transcribed;
-
-        // Update Search Model Query Total
-        if ($this->search->query_total) {
-            $this->search->query_total += intval($matches_json['matchCount']);
-        } else {
-            $this->search->query_total = intval($matches_json['matchCount']);
-        }
-
-        // Check if all files have been processed
-        // One upload + one process per file => intdiv for whole files processed
-        $processedFiles = intdiv($this->batch()->processedJobs() + 1, 2);
-
-        // Use >= to avoid missing the edge‐case where other jobs finish sooner
-        if ($processedFiles >= $this->fileCount) {
-            if ($this->search->query_total > 0) {
-                CreateReport::dispatch($this->search);
-            } else {
-                $this->search->completeAndEmail();
-            }
-        }
-
-        // Save DB changes
-        $this->search->save();
-        $this->file->save();
-
-        // If retrying, dispatch Report creation
-        if ($this->retry) {
-            if ($this->search->query_total > 0) {
-                CreateReport::dispatch($this->search);
-            } else {
-                $this->search->status = SearchStatus::Completed;
-            }
+            // Call Finished Check
+            $this->search->attemptToFinish($this->retry);
+        } catch (\Exception $e) {
+            $this->file->status = FileStatus::Failed;
+            $this->file->save();
+            throw new \Exception('Error processing file: ' . $e->getMessage());
         }
     }
 
@@ -110,7 +78,6 @@ class ProcessFile implements ShouldQueue
      */
     public function failed(\Throwable $exception)
     {
-        // Set transcription_path to 'failed' as pseudo status
         $this->file->status = FileStatus::Failed;
         $this->file->save();
 
@@ -118,6 +85,35 @@ class ProcessFile implements ShouldQueue
             app('sentry')->captureException($exception);
         } else {
             Log::warning('Sentry not bound');
+        }
+    }
+
+    protected function processAndStore(): array
+    {
+        // Get transcription response from Whisper
+        $transcription_response = $this->transcribeWithWhisper($this->file->audio_path);
+
+        // Search for query and format
+        $matches_json = $this->findAndSegment($transcription_response, $this->search->query);
+
+        // Check if the matchCount key exists
+        if (! isset($matches_json['matchCount'])) {
+            throw new \Exception('matchCount not found in JSON response');
+        }
+
+        // Store search response to file
+        $transcription_path = 'transcriptions/' . Str::uuid()->toString() . '.json';
+
+        try {
+            Storage::put($transcription_path, json_encode($matches_json));
+
+            return [$transcription_path, $matches_json['matchCount']];
+        } catch (\Exception $e) {
+            // Let the caller decide how to mark failure
+            throw new \Exception(
+                'Error writing transcription to storage: ' . $e->getMessage(),
+                previous: $e
+            );
         }
     }
 
@@ -154,7 +150,7 @@ class ProcessFile implements ShouldQueue
             }
 
             if (! $response->successful()) {
-                throw new \Exception('Whisper API error: '.$response->body());
+                throw new \Exception('Whisper API error: ' . $response->body());
             }
 
             $result = $response->json();

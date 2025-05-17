@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Enums\FileStatus;
 use App\Enums\SearchStatus;
 use App\Models\AudioFile;
 use App\Models\Search;
@@ -54,15 +55,6 @@ class UploadFile implements ShouldQueue
         if ($this->validateFile($tempPath)) {
             $this->moveFile($tempPath, $newPath);
             $this->createAndQueue($newPath);
-            $this->updateStatus();
-        }
-    }
-
-    public function updateStatus(): void
-    {
-        if ($this->batch()->processedJobs() + 1 >= $this->fileCount) {
-            $this->search->status = SearchStatus::Processing;
-            $this->search->save();
         }
     }
 
@@ -109,6 +101,6 @@ class UploadFile implements ShouldQueue
         );
 
         // Queue the file for processing
-        $this->batch()->add(new ProcessFile($this->search, $file, $this->fileCount));
+        $this->batch()->add(new ProcessFile($this->search, $file));
     }
 }

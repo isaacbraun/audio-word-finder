@@ -12,11 +12,6 @@ new class extends Component
 {
     public AudioFile $file;
 
-    public function mount()
-    {
-        $this->file->checkStatus();
-    }
-
     #[Computed]
     public function transcription(): array
     {
@@ -39,9 +34,10 @@ new class extends Component
     {
         // Reset transcription path and failed var to show correct UI state
         $this->file->transcription_path = null;
+        $this->file->status = FileStatus::Uploaded;
         $this->file->save();
 
-        ProcessFile::dispatch($this->file->search, $this->file);
+        ProcessFile::dispatch($this->file->search, $this->file, true);
     }
 
     public function copyTranscription(): void
@@ -51,7 +47,7 @@ new class extends Component
     }
 }; ?>
 
-<div @if ($this->file->status === FileStatus::Processing) wire:poll.2s @endif>
+<div @if ($this->file->status === FileStatus::Uploaded) wire:poll.2s @endif>
     <flux:card class="!p-4">
         <div class="flex flex-row flex-wrap gap-2 justify-between">
             <div>
@@ -76,7 +72,7 @@ new class extends Component
                 @endif
             </div>
 
-            @if ($this->file->status === FileStatus::Processing)
+            @if ($this->file->status === FileStatus::Uploaded)
             <flux:icon.loading variant="micro" />
             @elseif ($this->file->status === FileStatus::Transcribed && Arr::has($this->transcription, "fullText"))
             <flux:button
@@ -113,9 +109,9 @@ new class extends Component
         <flux:callout class="mt-2" icon="exclamation-triangle" color="red" inline>
             <flux:callout.heading>Processing failed</flux:callout.heading>
 
-            <!-- <x-slot name="actions"> -->
-            <!--     <flux:button wire:click="retry">Retry</flux:button> -->
-            <!-- </x-slot> -->
+            <x-slot name="actions">
+                <flux:button wire:click="retry">Retry</flux:button>
+            </x-slot>
         </flux:callout>
         @endif
     </flux:card>

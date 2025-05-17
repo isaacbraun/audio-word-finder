@@ -24,7 +24,7 @@ class AudioFile extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['search_id', 'audio_path', 'audio_filename', 'query_count', 'parsed_date'];
+    protected $fillable = ['search_id', 'audio_path', 'audio_filename', 'query_count', 'parsed_date', 'status'];
 
     /**
      * Get the attributes that should be cast.
@@ -57,33 +57,25 @@ class AudioFile extends Model
 
     public function getTranscription(): array
     {
-        // Check if transcription_path is null
         if (!$this->transcription_path) {
-            // Set status to transcription-missing
-            $this->status = FileStatus::TranscriptionMissing;
-            $this->save();
-
             return [];
         }
 
-        // Load transcription from storage
-        $transcription = Storage::json($this->transcription_path);
-
-        return $transcription ?? [];
-    }
-
-    public function checkStatus(): void
-    {
-        // Check if transcription_path is set
-        if ($this->transcription_path) {
+        try {
             // Load transcription from storage
             $transcription = Storage::json($this->transcription_path);
-
-            // If transcription is empty, set status to transcription-missing
             if (! $transcription) {
+                // Set status to transcription-missing
                 $this->status = FileStatus::TranscriptionMissing;
                 $this->save();
+
+                return [];
+            } else {
+                return $transcription;
             }
+        } catch (\Exception $e) {
+            Log::error('getTranscription: error loading transcription', ['exception' => $e->getMessage()]);
+            return [];
         }
     }
 
@@ -105,6 +97,7 @@ class AudioFile extends Model
             'audio_path' => $path,
             'audio_filename' => $sanitizedName,
             'parsed_date' => static::parseDate($originalFilename, $timezone),
+            'status' => FileStatus::Uploaded,
         ]);
     }
 
@@ -145,7 +138,7 @@ class AudioFile extends Model
 
             if ($dateTime->lt($minDate) || $dateTime->gt($maxDate)) {
                 // Date is suspiciously old or in the future
-                throw new \Exception('Filename date out of reasonable range: '.$dateTime->toDateTimeString());
+                throw new \Exception('Filename date out of reasonable range: ' . $dateTime->toDateTimeString());
             }
 
             return $dateTime;
