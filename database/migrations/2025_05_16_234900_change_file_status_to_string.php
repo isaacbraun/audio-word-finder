@@ -15,4 +15,15 @@ return new class extends Migration
             $table->string('status')->default(App\Enums\FileStatus::Queued->value)->change();
         });
     }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('files', function (Blueprint $table) {
+            // Revert to previous column definition
+            $table->string('status')->default('processing')->change();
+        });
+    }
 };
