@@ -54,10 +54,10 @@ class UpdateFileStatus extends Command
                 if (! $transcription) {
                     Log::info('UpdateFileStatus: transcription missing', ['path' => $file->transcription_path]);
                     $file->status = FileStatus::TranscriptionMissing;
+                } else {
+                    Log::info('UpdateFileStatus: transcription found', ['path' => $file->transcription_path]);
+                    $file->status = FileStatus::Transcribed;
                 }
-
-                Log::info('UpdateFileStatus: transcription found', ['path' => $file->transcription_path]);
-                $file->status = FileStatus::Transcribed;
             }
 
             // Check if audio_path is set
