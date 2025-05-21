@@ -115,6 +115,15 @@ new class extends Component {
 }; ?>
 
 <div>
+    <flux:callout icon="bell" variant="warning" class="mb-8" inline>
+        <flux:callout.heading>
+            There is an error with some total match counts
+        </flux:callout.heading>
+        <flux:callout.text>
+            We're working to fix it as soon as possible. We apologize for the inconvenience.
+        </flux:callout.text>
+    </flux:callout>
+
     <div class="flex flex-row flex-wrap items-center justify-between gap-2 mb-12">
         <flux:heading size="xl" level="1">Results for "{{ $query }}"</flux:heading>
 
