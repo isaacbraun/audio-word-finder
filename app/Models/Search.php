@@ -102,8 +102,6 @@ class Search extends Model
             ->whereIn('status', [FileStatus::Queued, FileStatus::Uploaded])
             ->doesntExist();
 
-        Log::info('All Processed: ' . $allFilesProcessed);
-
         // If all files have NOT been processed, exit
         if (!$allFilesProcessed) {
             return;
@@ -128,9 +126,12 @@ class Search extends Model
      */
     public function addToQueryCount(int $count): void
     {
+        Log::info('Adding to query count: ' . $count);
         if (isset($this->query_total) && $this->query_total > 0) {
+            Log::info('Adding to existing: ' . $this->query_total);
             $this->query_total += intval($count);
         } else {
+            Log::info('Initializing query total: ' . $count);
             $this->query_total = intval($count);
         }
 

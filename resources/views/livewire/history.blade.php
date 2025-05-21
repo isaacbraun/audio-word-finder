@@ -4,14 +4,18 @@ use App\Models\Search;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Livewire\Attributes\{Title, Computed};
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
 
-new #[Title('History')] class extends Component {
+new #[Title('History')] class extends Component
+{
     use \Livewire\WithPagination;
 
     public string $sortBy = 'created_at';
+
     public string $sortDirection = 'desc';
+
     public Search $selectedSearch;
 
     public function setSelected(Search $search): void
@@ -53,6 +57,15 @@ new #[Title('History')] class extends Component {
 }; ?>
 
 <div>
+    <flux:callout icon="bell" variant="warning" class="mb-8" inline>
+        <flux:callout.heading>
+            There is an error with some total match counts
+        </flux:callout.heading>
+        <flux:callout.text>
+            We're working to fix it as soon as possible. We apologize for the inconvenience.
+        </flux:callout.text>
+    </flux:callout>
+
     <flux:heading size="xl" level="1">History</flux:heading>
     <flux:subheading>View and delete past searches.</flux:subheading>
 
