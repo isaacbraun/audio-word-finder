@@ -120,13 +120,13 @@ class Search extends Model
     /**
      * Increments the query total for the search by the specified count.
      *
-     * If the query total is not set or is zero, it initializes it with the given count.
+     * If the query total is not set, it initializes it with the given count.
      *
      * @param int $count The number to add to the query total.
      */
     public function addToQueryCount(int $count): void
     {
-        if (isset($this->query_total) && $this->query_total !== null) {
+        if (isset($this->query_total)) {
             $this->query_total += intval($count);
         } else {
             $this->query_total = intval($count);
