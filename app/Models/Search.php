@@ -126,17 +126,22 @@ class Search extends Model
      */
     public function addToQueryCount(int $count): void
     {
-        Log::info('Adding to query count: ' . $count);
+        // Use database-level atomic operation to prevent race conditions
+        $updated = $this->newQuery()
+            ->where('id', $this->id)
+            ->whereNotNull('query_total')
+            ->increment('query_total', $count);
 
-        // Handle null case first - initialize if needed
-        if ($this->query_total === null) {
-            Log::info('Initializing query total: ' . $count);
-            $this->update(['query_total' => $count]);
-        } else {
-            Log::info('Adding to existing query total: ' . $this->query_total);
-            $this->increment('query_total', $count);
+        if ($updated === 0) {
+            // query_total was null, so initialize it
+            $this->newQuery()
+                ->where('id', $this->id)
+                ->whereNull('query_total')
+                ->update(['query_total' => $count]);
         }
 
+        // Refresh the model to get the updated value
+        $this->refresh();
         $this->save();
     }
 
