@@ -126,10 +126,15 @@ class Search extends Model
      */
     public function addToQueryCount(int $count): void
     {
-        if (isset($this->query_total)) {
-            $this->query_total += intval($count);
+        Log::info('Adding to query count: ' . $count);
+
+        // Handle null case first - initialize if needed
+        if ($this->query_total === null) {
+            Log::info('Initializing query total: ' . $count);
+            $this->update(['query_total' => $count]);
         } else {
-            $this->query_total = intval($count);
+            Log::info('Adding to existing query total: ' . $this->query_total);
+            $this->increment('query_total', $count);
         }
 
         $this->save();
