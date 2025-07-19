@@ -1,3 +1,7 @@
+[variables]
+NIXPACKS_MEMORY = "2g"
+NIXPACKS_CPUS = "1.5"
+
 [phases.setup]
 nixPkgs = ["...", "python311Packages.supervisor"]
 
